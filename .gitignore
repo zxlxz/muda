@@ -1,0 +1,14 @@
+# ignore sdk dir
+.vscode/
+.claude/
+.build/
+
+# ignore build dir
+build/
+
+# ignore build files
+*.o
+*.a
+*.so
+*.dylib
+*.metallib

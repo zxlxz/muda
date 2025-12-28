@@ -1,0 +1,202 @@
+#pragma once
+
+#include <stdint.h>
+
+enum CUresult {
+  CUDA_SUCCESS = 0,
+
+  // Invalid input
+  CUDA_ERROR_INVALID_VALUE = 1,
+
+  // Memory allocation errors
+  CUDA_ERROR_OUT_OF_MEMORY = 2,
+
+  // Initialization errors
+  CUDA_ERROR_NOT_INITIALIZED = 3,
+  CUDA_ERROR_DEINITIALIZED = 4,
+
+  // Profiler errors
+  CUDA_ERROR_PROFILER_DISABLED = 5,
+  CUDA_ERROR_PROFILER_NOT_INITIALIZED = 6,
+  CUDA_ERROR_PROFILER_ALREADY_STARTED = 7,
+  CUDA_ERROR_PROFILER_ALREADY_STOPPED = 8,
+
+  // Driver errors
+  CUDA_ERROR_STUB_LIBRARY = 34,
+  CUDA_ERROR_CALL_REQUIRES_NEWER_DRIVER = 36,
+  CUDA_ERROR_DEVICE_UNAVAILABLE = 46,
+
+  // Device errors
+  CUDA_ERROR_NO_DEVICE = 100,
+  CUDA_ERROR_INVALID_DEVICE = 101,
+  CUDA_ERROR_DEVICE_NOT_LICENSED = 102,
+
+  // Image/Module errors
+  CUDA_ERROR_INVALID_IMAGE = 200,
+  CUDA_ERROR_INVALID_CONTEXT = 201,
+  CUDA_ERROR_CONTEXT_ALREADY_CURRENT = 202,
+
+  // Memory mapping errors
+  CUDA_ERROR_MAP_FAILED = 205,
+  CUDA_ERROR_UNMAP_FAILED = 206,
+  CUDA_ERROR_ARRAY_IS_MAPPED = 207,
+  CUDA_ERROR_ALREADY_MAPPED = 208,
+  CUDA_ERROR_NO_BINARY_FOR_GPU = 209,
+  CUDA_ERROR_ALREADY_ACQUIRED = 210,
+  CUDA_ERROR_NOT_MAPPED = 211,
+  CUDA_ERROR_NOT_MAPPED_AS_ARRAY = 212,
+  CUDA_ERROR_NOT_MAPPED_AS_POINTER = 213,
+
+  // ECC and hardware errors
+  CUDA_ERROR_ECC_UNCORRECTABLE = 214,
+  CUDA_ERROR_UNSUPPORTED_LIMIT = 215,
+  CUDA_ERROR_CONTEXT_ALREADY_IN_USE = 216,
+  CUDA_ERROR_PEER_ACCESS_UNSUPPORTED = 217,
+
+  // PTX/JIT compilation errors
+  CUDA_ERROR_INVALID_PTX = 218,
+  CUDA_ERROR_INVALID_GRAPHICS_CONTEXT = 219,
+  CUDA_ERROR_NVLINK_UNCORRECTABLE = 220,
+  CUDA_ERROR_JIT_COMPILER_NOT_FOUND = 221,
+  CUDA_ERROR_UNSUPPORTED_PTX_VERSION = 222,
+  CUDA_ERROR_JIT_COMPILATION_DISABLED = 223,
+  CUDA_ERROR_UNSUPPORTED_EXEC_AFFINITY = 224,
+  CUDA_ERROR_UNSUPPORTED_DEVSIDE_SYNC = 225,
+  CUDA_ERROR_CONTAINED = 226,
+
+  // Source/Compilation errors
+  CUDA_ERROR_INVALID_SOURCE = 300,
+  CUDA_ERROR_FILE_NOT_FOUND = 301,
+  CUDA_ERROR_SHARED_OBJECT_SYMBOL_NOT_FOUND = 302,
+  CUDA_ERROR_SHARED_OBJECT_INIT_FAILED = 303,
+  CUDA_ERROR_OPERATING_SYSTEM = 304,
+
+  // Handle errors
+  CUDA_ERROR_INVALID_HANDLE = 400,
+  CUDA_ERROR_ILLEGAL_STATE = 401,
+  CUDA_ERROR_LOSSY_QUERY = 402,
+
+  // Symbol errors
+  CUDA_ERROR_NOT_FOUND = 500,
+
+  // Async errors
+  CUDA_ERROR_NOT_READY = 600,
+
+  // Launch errors
+  CUDA_ERROR_ILLEGAL_ADDRESS = 700,
+  CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES = 701,
+  CUDA_ERROR_LAUNCH_TIMEOUT = 702,
+  CUDA_ERROR_LAUNCH_INCOMPATIBLE_TEXTURING = 703,
+
+  // Peer access errors
+  CUDA_ERROR_PEER_ACCESS_ALREADY_ENABLED = 704,
+  CUDA_ERROR_PEER_ACCESS_NOT_ENABLED = 705,
+
+  // Context errors
+  CUDA_ERROR_PRIMARY_CONTEXT_ACTIVE = 708,
+  CUDA_ERROR_CONTEXT_IS_DESTROYED = 709,
+  CUDA_ERROR_ASSERT = 710,
+
+  // Resource errors
+  CUDA_ERROR_TOO_MANY_PEERS = 711,
+  CUDA_ERROR_HOST_MEMORY_ALREADY_REGISTERED = 712,
+  CUDA_ERROR_HOST_MEMORY_NOT_REGISTERED = 713,
+
+  // Hardware errors
+  CUDA_ERROR_HARDWARE_STACK_ERROR = 714,
+  CUDA_ERROR_ILLEGAL_INSTRUCTION = 715,
+  CUDA_ERROR_MISALIGNED_ADDRESS = 716,
+  CUDA_ERROR_INVALID_ADDRESS_SPACE = 717,
+  CUDA_ERROR_INVALID_PC = 718,
+  CUDA_ERROR_LAUNCH_FAILED = 719,
+  CUDA_ERROR_COOPERATIVE_LAUNCH_TOO_LARGE = 720,
+  CUDA_ERROR_TENSOR_MEMORY_LEAK = 721,
+
+  // System errors
+  CUDA_ERROR_NOT_PERMITTED = 800,
+  CUDA_ERROR_NOT_SUPPORTED = 801,
+  CUDA_ERROR_SYSTEM_NOT_READY = 802,
+  CUDA_ERROR_SYSTEM_DRIVER_MISMATCH = 803,
+  CUDA_ERROR_COMPAT_NOT_SUPPORTED_ON_DEVICE = 804,
+
+  // MPS errors
+  CUDA_ERROR_MPS_CONNECTION_FAILED = 805,
+  CUDA_ERROR_MPS_RPC_FAILURE = 806,
+  CUDA_ERROR_MPS_SERVER_NOT_READY = 807,
+  CUDA_ERROR_MPS_MAX_CLIENTS_REACHED = 808,
+  CUDA_ERROR_MPS_MAX_CONNECTIONS_REACHED = 809,
+  CUDA_ERROR_MPS_CLIENT_TERMINATED = 810,
+
+  // CDP errors
+  CUDA_ERROR_CDP_NOT_SUPPORTED = 811,
+  CUDA_ERROR_CDP_VERSION_MISMATCH = 812,
+
+  // Stream capture errors
+  CUDA_ERROR_STREAM_CAPTURE_UNSUPPORTED = 900,
+  CUDA_ERROR_STREAM_CAPTURE_INVALIDATED = 901,
+  CUDA_ERROR_STREAM_CAPTURE_MERGE = 902,
+  CUDA_ERROR_STREAM_CAPTURE_UNMATCHED = 903,
+  CUDA_ERROR_STREAM_CAPTURE_UNJOINED = 904,
+  CUDA_ERROR_STREAM_CAPTURE_ISOLATION = 905,
+  CUDA_ERROR_STREAM_CAPTURE_IMPLICIT = 906,
+  CUDA_ERROR_CAPTURED_EVENT = 907,
+  CUDA_ERROR_STREAM_CAPTURE_WRONG_THREAD = 908,
+
+  // Timeout and graph errors
+  CUDA_ERROR_TIMEOUT = 909,
+  CUDA_ERROR_GRAPH_EXEC_UPDATE_FAILURE = 910,
+
+  // External errors
+  CUDA_ERROR_EXTERNAL_DEVICE = 911,
+
+  // Cluster and resource errors
+  CUDA_ERROR_INVALID_CLUSTER_SIZE = 912,
+  CUDA_ERROR_FUNCTION_NOT_LOADED = 913,
+  CUDA_ERROR_INVALID_RESOURCE_TYPE = 914,
+  CUDA_ERROR_INVALID_RESOURCE_CONFIGURATION = 915,
+  CUDA_ERROR_KEY_ROTATION = 916,
+  CUDA_ERROR_STREAM_DETACHED = 917,
+
+  // Unknown error
+  CUDA_ERROR_UNKNOWN = 999,
+};
+
+struct CUParam_st {
+  enum Type { None, Bytes, Buffer, Texture, Sampler };
+  Type _type = Type::None;
+  uint32_t _size = 0;
+  const void* _data = nullptr;
+
+ public:
+  CUParam_st() noexcept : _type{Type::None}, _size{0}, _data{nullptr} {}
+
+  template <typename T>
+  CUParam_st(const T& val, Type t = Bytes) : _type{t}, _size{sizeof(T)}, _data{&val} {}
+
+  template <class T>
+  CUParam_st(const T* ptr, Type t = Buffer) : _type{t}, _size{sizeof(T)}, _data{ptr} {}
+
+  template <class T>
+  CUParam_st(T* ptr, Type t = Buffer) : _type{t}, _size{sizeof(T)}, _data{ptr} {}
+};
+
+using CUmodule = struct CUmod_st*;
+using CUstream = struct CUstream_st*;
+using CUfunction = struct CUfunc_st*;
+using CUParam = struct CUParam_st;
+
+CUresult cuModuleLoad(CUmodule* module, const char* path);
+CUresult cuModuleUnload(CUmodule hmod);
+CUresult cuModuleGetFunction(CUfunction* hfunc, CUmodule hmod, const char* name);
+
+CUresult cuLaunchKernel(CUfunction f,
+                        uint32_t gridDimX,
+                        uint32_t gridDimY,
+                        uint32_t gridDimZ,
+                        uint32_t blockDimX,
+                        uint32_t blockDimY,
+                        uint32_t blockDimZ,
+                        uint32_t sharedMemBytes,
+                        CUstream hStream,
+                        const CUParam params[],
+                        void** extra);

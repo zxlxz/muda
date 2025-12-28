@@ -1,0 +1,6 @@
+BasedOnStyle: Google
+ColumnLimit: 120
+
+BinPackParameters: false
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: Empty

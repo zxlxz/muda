@@ -49,11 +49,11 @@ static auto makeSamplerState(const cudaTextureDesc& pTexDesc, const MTL::Texture
   return samplerState;
 }
 
-cudaError_t cudaCreateTextureObject(cudaTextureObject_t* pTex,
+cudaError_t cudaCreateTextureObject(cudaTextureObject_t* pTexObj,
                                     const cudaResourceDesc* pResDesc,
                                     const cudaTextureDesc* pTexDesc,
                                     const cudaResourceViewDesc* /*pResViewDesc*/) {
-  if (!pTex || !pResDesc || !pTexDesc) {
+  if (!pTexObj || !pResDesc || !pTexDesc) {
     return cudaErrorInvalidValue;
   }
 
@@ -74,18 +74,20 @@ cudaError_t cudaCreateTextureObject(cudaTextureObject_t* pTex,
   if (!samplerState) {
     return cudaErrorMemoryAllocation;
   }
-  *pTex = static_cast<cudaTextureObject_t>(samplerState);
+  *pTexObj = __builtin_bit_cast(cudaTextureObject_t, samplerState);
 
   return cudaSuccess;
 }
 
-cudaError_t cudaDestroyTextureObject(cudaTextureObject_t texObject) {
-  if (!texObject) {
+cudaError_t cudaDestroyTextureObject(cudaTextureObject_t texObj) {
+  if (!texObj) {
     return cudaSuccess;
   }
 
   auto& device = CUdevice_st::global();
-  device.delSamplerState(texObject);
+
+  auto sampler = __builtin_bit_cast(MTL::SamplerState*, texObj);
+  device.delSamplerState(sampler);
 
   return cudaSuccess;
 }

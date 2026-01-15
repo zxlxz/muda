@@ -353,7 +353,7 @@ cudaError_t cudaMemcpy3DAsync(const cudaMemcpy3DParms* p, cudaStream_t stream);
 #pragma region texture
 struct cudaTextureObject_st;
 
-using cudaTextureObject_t = struct cudaTextureObject_st*;
+using cudaTextureObject_t = unsigned long long;
 
 enum cudaResourceType {
   cudaResourceTypeArray = 0,

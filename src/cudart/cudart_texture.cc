@@ -1,34 +1,36 @@
-#include "cuda/metal.h"
+#include "../cuda/metal.h"
 #include "cuda_runtime_api.h"
 
-static auto makeSamplerState(const cudaTextureDesc& pTexDesc, const MTL::Texture* tex) -> MTL::SamplerState* {
+static auto toFilterMode(cudaTextureFilterMode mode) -> MTL::SamplerMinMagFilter {
+  switch (mode) {
+    case cudaFilterModePoint: return MTL::SamplerMinMagFilterNearest;
+    case cudaFilterModeLinear: return MTL::SamplerMinMagFilterLinear;
+  }
+}
+
+static auto toAddressMode(cudaTextureAddressMode mode) -> MTL::SamplerAddressMode {
+  switch (mode) {
+    case cudaAddressModeWrap: return MTL::SamplerAddressModeRepeat;
+    case cudaAddressModeClamp: return MTL::SamplerAddressModeClampToEdge;
+    case cudaAddressModeMirror: return MTL::SamplerAddressModeMirrorRepeat;
+    case cudaAddressModeBorder: return MTL::SamplerAddressModeClampToBorderColor;
+  }
+}
+
+static auto makeSamplerState(const cudaTextureDesc& pTexDesc, MTL::Texture* tex) -> MTL::SamplerState* {
   if (pTexDesc.readMode != cudaReadModeElementType) {
     return nullptr;
   }
 
-  auto getFilterMode = [](cudaTextureFilterMode mode) {
-    switch (mode) {
-      case cudaFilterModePoint: return MTL::SamplerMinMagFilterNearest;
-      case cudaFilterModeLinear: return MTL::SamplerMinMagFilterLinear;
-    }
-  };
-  const auto filterMode = getFilterMode(pTexDesc.filterMode);
+  const auto filterMode = toFilterMode(pTexDesc.filterMode);
 
-  auto getAddressMode = [](cudaTextureAddressMode mode) {
-    switch (mode) {
-      case cudaAddressModeWrap: return MTL::SamplerAddressModeRepeat;
-      case cudaAddressModeClamp: return MTL::SamplerAddressModeClampToEdge;
-      case cudaAddressModeMirror: return MTL::SamplerAddressModeMirrorRepeat;
-      case cudaAddressModeBorder: return MTL::SamplerAddressModeClampToBorderColor;
-    }
-  };
   const MTL::SamplerAddressMode addressMode[] = {
-      getAddressMode(pTexDesc.addressMode[0]),
-      getAddressMode(pTexDesc.addressMode[1]),
-      getAddressMode(pTexDesc.addressMode[2]),
+      toAddressMode(pTexDesc.addressMode[0]),
+      toAddressMode(pTexDesc.addressMode[1]),
+      toAddressMode(pTexDesc.addressMode[2]),
   };
 
-  auto samplerDesc = MTL::SamplerDescriptor::alloc()->init();
+  auto samplerDesc = AutoRelease{MTL::SamplerDescriptor::alloc()->init()};
   if (!samplerDesc) {
     return nullptr;
   }
@@ -43,8 +45,7 @@ static auto makeSamplerState(const cudaTextureDesc& pTexDesc, const MTL::Texture
   samplerDesc->setNormalizedCoordinates(normalizedCoords);
 
   auto& device = CUdevice_st::global();
-  auto samplerState = device.newSamplerState(samplerDesc, const_cast<MTL::Texture*>(tex));
-  samplerDesc->release();
+  auto samplerState = device.newSamplerState(samplerDesc, tex);
 
   return samplerState;
 }
@@ -65,7 +66,7 @@ cudaError_t cudaCreateTextureObject(cudaTextureObject_t* pTexObj,
     return cudaErrorNotSupported;
   }
 
-  auto texture = static_cast<MTL::Texture*>(pResDesc->res.array.array);
+  auto texture = pResDesc->res.array.array;
   if (!texture) {
     return cudaErrorInvalidDevicePointer;
   }

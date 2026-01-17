@@ -1,5 +1,5 @@
-#include "cuda/metal.h"
-#include "cudart/cuda_runtime_api.h"
+#include "../cuda/metal.h"
+#include "cuda_runtime_api.h"
 
 cudaError_t cudaMalloc(void** ptr, size_t size) {
   if (!ptr) {
@@ -68,8 +68,6 @@ cudaError_t cudaMemsetAsync(void* ptr, int value, size_t count, cudaStream_t /*s
     return cudaSuccess;
   }
 
-  // in metal's shared memory model, we can directly memset
-  // and stream is ignored
   ::memset(ptr, value, count);
   return cudaSuccess;
 }
@@ -79,6 +77,8 @@ cudaError_t cudaMemcpy(void* dst, const void* src, size_t count, cudaMemcpyKind 
 }
 
 cudaError_t cudaMemcpyAsync(void* dst, const void* src, size_t count, cudaMemcpyKind kind, cudaStream_t stream) {
+  (void)stream;
+
   if (!dst || !src) {
     return cudaErrorInvalidValue;
   }
@@ -86,9 +86,6 @@ cudaError_t cudaMemcpyAsync(void* dst, const void* src, size_t count, cudaMemcpy
   if (count == 0) {
     return cudaSuccess;
   }
-
-  // stream is ignored
-  (void)stream;
 
   // because metal buffer is shared memory, we can directly memcpy
   ::memcpy(dst, src, count);

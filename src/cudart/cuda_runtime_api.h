@@ -1,7 +1,6 @@
 #pragma once
 
-#include <stdint.h>
-#include <stdlib.h>
+#include <stddef.h>
 
 #pragma region error handling
 enum cudaError {
@@ -284,13 +283,10 @@ cudaError_t cudaMemsetAsync(void* devPtr, int value, size_t count, cudaStream_t 
 
 cudaError_t cudaMemcpy(void* dst, const void* src, size_t count, cudaMemcpyKind kind);
 cudaError_t cudaMemcpyAsync(void* dst, const void* src, size_t count, cudaMemcpyKind kind, cudaStream_t stream);
-
 #pragma endregion
 
 #pragma region array management
-struct cudaArray;
-
-using cudaArray_t = struct cudaArray*;
+using cudaArray_t = struct CUarray_st*;
 
 struct cudaExtent {
   size_t width;
@@ -307,7 +303,7 @@ struct cudaPitchedPtr {
 
 struct cudaMemcpy3DParms {
   cudaPitchedPtr srcPtr;  // host or device ptr
-  cudaArray* dstArray;    // device array
+  cudaArray_t dstArray;   // device array
   cudaExtent extent;      // width, height, depth
   cudaMemcpyKind kind;    // direction
 };
@@ -382,7 +378,7 @@ struct cudaResourceDesc {
   cudaResourceType resType;
   union {
     struct {
-      struct cudaArray* array;
+      cudaArray_t array;
     } array;
   } res;
 };

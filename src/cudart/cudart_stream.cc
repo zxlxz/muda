@@ -1,5 +1,5 @@
-#include "cuda/metal.h"
-#include "cudart/cuda_runtime_api.h"
+#include "../cuda/metal.h"
+#include "cuda_runtime_api.h"
 
 cudaError_t cudaStreamCreate(cudaStream_t* pStream) {
   if (!pStream) {
@@ -21,20 +21,20 @@ cudaError_t cudaStreamDestroy(cudaStream_t stream) {
     return cudaSuccess;
   }
 
-  auto command_queue = static_cast<CUstream_st*>(stream);
-  command_queue->release();
+  auto& device = CUdevice_st::global();
+  device.delCommandQueue(stream);
   return cudaSuccess;
 }
 
 cudaError_t cudaStreamSynchronize(cudaStream_t stream) {
   if (!stream) {
-    stream = &CUstream_st::global();
+    auto& device = CUdevice_st::global();
+    stream = static_cast<CUstream_st*>(device.defaultStream());
   }
 
   // use a empty command buffer to synchronize
-  auto command_buffer = stream->commandBuffer();
+  auto command_buffer = AutoRelease{stream->commandBuffer()};
   command_buffer->commit();
   command_buffer->waitUntilCompleted();
-  command_buffer->release();
   return cudaSuccess;
 }

@@ -1,5 +1,5 @@
-#include "cuda/metal.h"
-#include "cudart/cuda_runtime_api.h"
+#include "../cuda/metal.h"
+#include "cuda_runtime_api.h"
 
 static auto toArrayFlags(MTL::TextureType texType) -> cudaArrayFlags {
   switch (texType) {
@@ -13,82 +13,78 @@ static auto toArrayFlags(MTL::TextureType texType) -> cudaArrayFlags {
 }
 
 static auto toChannelFormatDesc(MTL::PixelFormat pixelFormat) -> cudaChannelFormatDesc {
-  struct ChannelInfo {
-    MTL::PixelFormat format;
-    cudaChannelFormatKind kind;
-    int bits;
-  };
-
-  static const ChannelInfo channelInfos[] = {
-      {MTL::PixelFormatR8Sint, cudaChannelFormatKindSigned, 8},
-      {MTL::PixelFormatR16Sint, cudaChannelFormatKindSigned, 16},
-      {MTL::PixelFormatR32Sint, cudaChannelFormatKindSigned, 32},
-      {MTL::PixelFormatR8Uint, cudaChannelFormatKindUnsigned, 8},
-      {MTL::PixelFormatR16Uint, cudaChannelFormatKindUnsigned, 16},
-      {MTL::PixelFormatR32Uint, cudaChannelFormatKindUnsigned, 32},
-      {MTL::PixelFormatR16Float, cudaChannelFormatKindFloat, 16},
-      {MTL::PixelFormatR32Float, cudaChannelFormatKindFloat, 32},
-  };
-
-  auto desc = cudaChannelFormatDesc{0, 0, 0, 0, cudaChannelFormatKindNone};
-  for (const auto& info : channelInfos) {
-    if (info.format == pixelFormat) {
-      desc.x = info.bits;
-      desc.f = info.kind;
-      break;
-    }
+  switch (pixelFormat) {
+    default: return {0, 0, 0, 0, cudaChannelFormatKindNone};
+    case MTL::PixelFormatR8Sint: return {8, 0, 0, 0, cudaChannelFormatKindSigned};
+    case MTL::PixelFormatR16Sint: return {16, 0, 0, 0, cudaChannelFormatKindSigned};
+    case MTL::PixelFormatR32Sint: return {32, 0, 0, 0, cudaChannelFormatKindSigned};
+    case MTL::PixelFormatR8Uint: return {8, 0, 0, 0, cudaChannelFormatKindUnsigned};
+    case MTL::PixelFormatR16Uint: return {16, 0, 0, 0, cudaChannelFormatKindUnsigned};
+    case MTL::PixelFormatR32Uint: return {32, 0, 0, 0, cudaChannelFormatKindUnsigned};
+    case MTL::PixelFormatR16Float: return {16, 0, 0, 0, cudaChannelFormatKindFloat};
+    case MTL::PixelFormatR32Float: return {32, 0, 0, 0, cudaChannelFormatKindFloat};
   }
-
-  return desc;
 }
 
-static auto makePixelFormat(const cudaChannelFormatDesc& desc) -> MTL::PixelFormat {
-  MTL::PixelFormat pixelFormat = MTL::PixelFormatUnspecialized;
-
+static auto toPixelFormat(const cudaChannelFormatDesc& desc) -> MTL::PixelFormat {
   // only support single channel formats
   if (desc.y != 0 || desc.z != 0 || desc.w != 0) {
-    return pixelFormat;
+    return MTL::PixelFormatUnspecialized;
   }
 
-  const auto sx = desc.x;
+  if (desc.x <= 0 || desc.x % 8 != 0) {
+    return MTL::PixelFormatUnspecialized;
+  }
+
+  const auto s = desc.x / 8 - 1;
+  if (s < 0 || s >= 3) {
+    return MTL::PixelFormatUnspecialized;
+  }
+
+  static const MTL::PixelFormat U[] = {
+      MTL::PixelFormatR8Uint,
+      MTL::PixelFormatR16Uint,
+      MTL::PixelFormatR32Uint,
+  };
+  static const MTL::PixelFormat I[] = {
+      MTL::PixelFormatR8Sint,
+      MTL::PixelFormatR16Sint,
+      MTL::PixelFormatR32Sint,
+  };
+  static const MTL::PixelFormat F[] = {
+      MTL::PixelFormatUnspecialized,
+      MTL::PixelFormatR16Float,
+      MTL::PixelFormatR32Float,
+  };
+
   switch (desc.f) {
-    case cudaChannelFormatKindSigned:
-      return sx == 8    ? MTL::PixelFormatR8Sint   // i8
-             : sx == 16 ? MTL::PixelFormatR16Sint  // i16
-             : sx == 32 ? MTL::PixelFormatR32Sint  // i32
-                        : MTL::PixelFormatUnspecialized;
-    case cudaChannelFormatKindUnsigned:
-      return sx == 8    ? MTL::PixelFormatR8Uint   // u8
-             : sx == 16 ? MTL::PixelFormatR16Uint  // u16
-             : sx == 32 ? MTL::PixelFormatR32Uint  // u32
-                        : MTL::PixelFormatUnspecialized;
-    case cudaChannelFormatKindFloat:
-      return sx == 16   ? MTL::PixelFormatR16Float  // f16
-             : sx == 32 ? MTL::PixelFormatR32Float  // f32
-                        : MTL::PixelFormatUnspecialized;
+    case cudaChannelFormatKindSigned: return I[s];
+    case cudaChannelFormatKindUnsigned: return U[s];
+    case cudaChannelFormatKindFloat: return F[s];
     default: return MTL::PixelFormatUnspecialized;
   }
 }
 
-static auto makePixelType(const cudaExtent& extent, cudaArrayFlags flags) -> MTL::TextureType {
-  const auto ndim = (extent.depth > 1) ? 3 : ((extent.height > 1) ? 2 : 1);
-  switch (ndim) {
-    case 1: return MTL::TextureType1D;
-    case 2: return flags == cudaArrayDefault ? MTL::TextureType2D : MTL::TextureType1DArray;
-    case 3: return flags == cudaArrayDefault ? MTL::TextureType3D : MTL::TextureType2DArray;
+static auto toPixelType(const cudaExtent& extent, cudaArrayFlags flags) -> MTL::TextureType {
+  switch (flags) {
+    default:
+    case cudaArrayDefault: {
+      return extent.depth > 1 ? MTL::TextureType3D : extent.height > 1 ? MTL::TextureType2D : MTL::TextureType1D;
+    }
+    case cudaArrayLayered: {
+      return extent.depth > 1 ? MTL::TextureType2DArray : MTL::TextureType1DArray;
+    }
   }
-  return MTL::TextureType3D;
 }
 
 static auto makeTextureDesc(const cudaChannelFormatDesc& desc, const cudaExtent& extent, cudaArrayFlags flags)
     -> MTL::TextureDescriptor* {
-  const auto texFormat = makePixelFormat(desc);
+  const auto texFormat = toPixelFormat(desc);
   if (texFormat == MTL::PixelFormatUnspecialized) {
     return nullptr;
   }
 
-  const auto texType = makePixelType(extent, flags);
-
+  const auto texType = toPixelType(extent, flags);
   auto texDesc = MTL::TextureDescriptor::alloc()->init();
   texDesc->setTextureType(texType);
   texDesc->setStorageMode(MTL::StorageModeShared);
@@ -114,16 +110,15 @@ cudaError_t cudaMalloc3DArray(cudaArray_t* array,
     return cudaErrorInvalidValue;
   }
 
-  auto texDesc = makeTextureDesc(*desc, extent, flags);
+  auto texDesc = AutoRelease{makeTextureDesc(*desc, extent, flags)};
   if (!texDesc) {
     return cudaErrorNotSupported;
   }
 
   auto& device = CUdevice_st::global();
   auto texture = device.newTexture(texDesc);
-  texDesc->release();
 
-  *array = static_cast<cudaArray*>(texture);
+  *array = static_cast<cudaArray_t>(texture);
   return cudaSuccess;
 }
 
@@ -152,12 +147,10 @@ cudaError_t cudaArrayGetInfo(cudaChannelFormatDesc* desc, cudaExtent* pExtent, i
   }
 
   if (pExtent) {
-    const auto cudaExtent = ::cudaExtent{
-        .width = array->width(),
-        .height = array->height(),
-        .depth = array->depth(),
-    };
-    *pExtent = cudaExtent;
+    const auto w = array->width();
+    const auto h = array->height();
+    const auto d = array->depth();
+    *pExtent = {.width = w, .height = h, .depth = d};
   }
 
   const auto textureType = array->textureType();
@@ -180,7 +173,7 @@ cudaError_t cudaMemcpy3DAsync(const cudaMemcpy3DParms* p, cudaStream_t stream) {
   // copy from host ptr to device array
   if (p->srcPtr.ptr && p->dstArray) {
     const auto srcPtr = p->srcPtr.ptr;
-    const auto dstBuffer = static_cast<MTL::Texture*>(p->dstArray);
+    const auto dstBuffer = p->dstArray;
 
     // copy from srcPtr to dstBuffer
     const auto bytesPerRow = p->srcPtr.pitch;

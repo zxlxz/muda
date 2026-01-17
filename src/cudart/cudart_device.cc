@@ -1,5 +1,5 @@
-#include "cuda/metal.h"
-#include "cudart/cuda_runtime_api.h"
+#include "../cuda/metal.h"
+#include "cuda_runtime_api.h"
 
 static constexpr int METAL_DEVICE_ID = 0;
 
@@ -52,5 +52,7 @@ cudaError_t cudaGetDeviceProperties(cudaDeviceProp* prop, int device) {
 }
 
 cudaError_t cudaDeviceSynchronize() {
-  return cudaStreamSynchronize(nullptr);
+  auto& device = CUdevice_st::global();
+  device.Synchronize();
+  return cudaSuccess;
 }

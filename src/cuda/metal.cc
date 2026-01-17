@@ -6,8 +6,8 @@
 #include "cuda/metal.h"
 
 template <class T>
-class DeviceCache {
-  std::mutex _mutex;
+struct DeviceCache {
+  mutable std::mutex _mutex;
   std::vector<T> _buffers;
 
  public:
@@ -16,9 +16,9 @@ class DeviceCache {
     return res;
   }
 
-  void addValue(const T& val) {
+  void addValue(T val) {
     auto lock = std::lock_guard{_mutex};
-    _buffers.push_back(val);
+    _buffers.push_back(std::move(val));
   }
 
   void removeIf(auto&& f) {
@@ -30,7 +30,7 @@ class DeviceCache {
     }
   }
 
-  auto findIf(auto&& f) -> const T* {
+  auto findIf(auto&& f) const -> const T* {
     auto lock = std::lock_guard{_mutex};
     for (auto& x : _buffers) {
       if (f(x)) {
@@ -41,6 +41,15 @@ class DeviceCache {
   }
 };
 
+struct DeviceInfo {
+  CUdevice_st* device;
+  AutoRelease<CUstream_st> stream;
+};
+
+struct CommandQueueInfo {
+  MTL::CommandQueue* queue;
+};
+
 struct BufferInfo {
   MTL::Buffer* buffer;
   void* contents;
@@ -48,7 +57,7 @@ struct BufferInfo {
 
  public:
   // range [begin, end)
-  auto contains(const void* p) const -> bool {
+  bool contains(const void* p) const {
     const auto ptr = static_cast<const char*>(p);
     const auto begin = static_cast<const char*>(contents);
     const auto end = begin + length;
@@ -60,6 +69,48 @@ struct SamplerInfo {
   MTL::SamplerState* sampler;
   MTL::Texture* texture;
 };
+
+// command queue
+auto CUdevice_st::newCommandQueue() -> MTL::CommandQueue* {
+  auto command_queue = MTL::Device::newCommandQueue();
+
+  auto& cache = DeviceCache<CommandQueueInfo>::instance();
+  cache.addValue({command_queue});
+
+  return command_queue;
+}
+
+void CUdevice_st::delCommandQueue(MTL::CommandQueue* queue) {
+  if (!queue) {
+    return;
+  }
+
+  auto& cache = DeviceCache<CommandQueueInfo>::instance();
+  cache.removeIf([queue](const CommandQueueInfo& info) { return info.queue == queue; });
+  queue->release();
+}
+
+auto CUdevice_st::defaultStream() -> CUstream_st* {
+  auto& cache = DeviceCache<DeviceInfo>::instance();
+
+  auto findResult = cache.findIf([this](const DeviceInfo& info) { return info.device == this; });
+  if (findResult) {
+    return findResult->stream;
+  }
+
+  auto stream = static_cast<CUstream_st*>(MTL::Device::newCommandQueue());
+  cache.addValue(DeviceInfo{this, AutoRelease{stream}});
+  return stream;
+}
+
+void CUdevice_st::Synchronize() {
+  auto command_queue = defaultStream();
+
+  // use a empty command buffer to synchronize
+  auto command_buffer = AutoRelease{command_queue->commandBuffer()};
+  command_buffer->commit();
+  command_buffer->waitUntilCompleted();
+}
 
 auto CUdevice_st::newBuffer(NS::UInteger length, MTL::ResourceOptions options) -> MTL::Buffer* {
   if (length == 0) {
@@ -154,11 +205,6 @@ auto CUdevice_st::getBoundTexture(const MTL::SamplerState* sampler) const noexce
 }
 
 auto CUdevice_st::global() -> CUdevice_st& {
-  static auto g_device = MTL::CreateSystemDefaultDevice();
+  static auto g_device = AutoRelease<MTL::Device>{MTL::CreateSystemDefaultDevice()};
   return static_cast<CUdevice_st&>(*g_device);
-}
-
-auto CUstream_st::global() -> CUstream_st& {
-  static auto g_stream = CUdevice_st::global().newCommandQueue();
-  return static_cast<CUstream_st&>(*g_stream);
 }

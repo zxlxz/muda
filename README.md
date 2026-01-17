@@ -27,100 +27,30 @@ MUDA provides a CUDA-like programming interface that runs on macOS by leveraging
 
 ## 🏗️ Architecture
 
+```mermaid
+block-beta
+    columns 1
+    block
+        A["Your Application<br/>CUDA-compatible code"]
+        style A fill:#f9f,stroke:#333,stroke-width:2px
+    end
+    block
+        B["CUDA Runtime API<br/>cudart - CUDA Runtime Library<br/>cudaMalloc, cudaMemcpy, etc."]
+        C["CUDA Driver API<br/>cuda - Driver Interface<br/>cuModuleLoad, cuLaunchKernel, etc."]
+        style B fill:#bbf,stroke:#333,stroke-width:2px
+        style C fill:#bbf,stroke:#333,stroke-width:2px
+    end
+    block
+        D["metal-cpp<br/>Apple's Metal C++ Wrapper"]
+        E["Metal<br/>Apple's GPU Computing Framework"]
+        style D fill:#bfb,stroke:#333,stroke-width:2px
+        style E fill:#bfb,stroke:#333,stroke-width:2px
+    end
+    block
+        F["GPU Hardware<br/>Apple Silicon / Intel Mac"]
+        style F fill:#86f,stroke:#333,stroke-width:2px
+    end
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        Your Application                      │
-│                  (CUDA-compatible code)                      │
-├─────────────────────────────────────────────────────────────┤
-│                     CUDA Runtime API                         │
-│           (cudart - CUDA Runtime Library)                   │
-│         cuModuleLoad, cuLaunchKernel, etc.                  │
-├─────────────────────────────────────────────────────────────┤
-│                     CUDA Driver API                          │
-│            (cuda - Driver Interface)                        │
-│         cuModuleLoad, cuModuleGetFunction, etc.            │
-├─────────────────────────────────────────────────────────────┤
-│                      metal-cpp                              │
-│          (Apple's Metal C++ Wrapper)                        │
-├─────────────────────────────────────────────────────────────┤
-│                         Metal                                │
-│           (Apple's GPU Computing Framework)                 │
-├─────────────────────────────────────────────────────────────┤
-│                    GPU Hardware                              │
-│              (Apple Silicon / Intel Mac)                    │
-└─────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 📁 Project Structure
-
-```
-muda/
-├── README.md                 # This file
-├── CLAUDE.md                 # Development instructions
-│
-├── metal-cpp/               # Apple's Metal C++ wrapper (DO NOT MODIFY)
-│   ├── Metal/
-│   ├── MetalKit/
-│   └── Foundation/
-│
-├── src/
-│   ├── cuda/                # CUDA Driver API implementation
-│   │   ├── cuda.h           # CUresult, CUmodule, etc.
-│   │   ├── cuda.cc          # cuModuleLoad, cuLaunchKernel, etc.
-│   │   └── metal.h          # Metal integration
-│   │
-│   ├── cudart/              # CUDA Runtime API implementation
-│   │   ├── cuda_runtime_api.h
-│   │   └── cuda_runtime_api.cc
-│   │
-│   └── cufft/               # CUDA FFT Library (using Apple vDSP)
-│       ├── cufft.h
-│       └── cufft.cc
-│
-└── include/
-    ├── cuda/                # Public CUDA headers
-    ├── cudart/              # Public cudart headers
-    └── cufft/               # Public cufft headers
-```
-
----
-
-## ✨ Features
-
-### CUDA Driver API (`cuda.h`)
-
-| Function | Status | Description |
-|----------|--------|-------------|
-| `cuModuleLoad` | ✅ Complete | Load a CUDA module (Metal library) |
-| `cuModuleUnload` | ✅ Complete | Unload a CUDA module |
-| `cuModuleGetFunction` | ✅ Complete | Get function handle from module |
-| `cuLaunchKernel` | ✅ Complete | Launch a compute kernel |
-| More functions | 🔄 Planned | Ongoing development |
-
-### CUDA Runtime API (`cuda_runtime_api.h`)
-
-| Function | Status | Description |
-|----------|--------|-------------|
-| `cudaGetDeviceCount` | ✅ Complete | Get number of available devices |
-| `cudaGetDevice` | ✅ Complete | Get current device ordinal |
-| `cudaSetDevice` | ✅ Complete | Set current device |
-| `cudaMalloc` | ✅ Complete | Allocate device memory |
-| `cudaFree` | ✅ Complete | Free device memory |
-| `cudaMemcpy` | ✅ Complete | Memory copy operations |
-| `cudaStreamCreate` | ✅ Complete | Create a stream |
-| More functions | 🔄 Planned | Ongoing development |
-
-### CUDA FFT (`cufft.h`)
-
-| Function | Status | Description |
-|----------|--------|-------------|
-| `cufftPlan1d` | ✅ Complete | Create 1D FFT plan |
-| `cufftExecC2C` | ✅ Complete | Complex-to-complex transform |
-| `cufftExecC2R` | ✅ Complete | Complex-to-real transform |
-| `cufftExecR2C` | ✅ Complete | Real-to-complex transform |
-| `cufftDestroy` | ✅ Complete | Destroy FFT plan |
 
 ---
 
@@ -140,10 +70,11 @@ git clone https://github.com/yourusername/muda.git
 cd muda
 
 # configure
-cmake --build build
+cmake -B build
 
 # build
-cmake -B build
+cmake --build build
+
 ```
 
 ### Basic Usage

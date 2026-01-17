@@ -36,13 +36,13 @@ static void setComputeParams(MTL::ComputeCommandEncoder& encoder, const CUParam 
 }
 
 CUresult cuLaunchKernel(CUfunction f,
-                        uint32_t gridDimX,
-                        uint32_t gridDimY,
-                        uint32_t gridDimZ,
-                        uint32_t blockDimX,
-                        uint32_t blockDimY,
-                        uint32_t blockDimZ,
-                        uint32_t /*sharedMemBytes*/,
+                        unsigned gridDimX,
+                        unsigned gridDimY,
+                        unsigned gridDimZ,
+                        unsigned blockDimX,
+                        unsigned blockDimY,
+                        unsigned blockDimZ,
+                        unsigned /*sharedMemBytes*/,
                         CUstream stream,
                         const CUParam params[],
                         void** /*extra*/) {

@@ -168,6 +168,11 @@ CUresult cuDriverGetVersion(int* driverVersion);
 CUresult cuInit(unsigned int flags);
 #pragma endregion
 
+#pragma region error
+CUresult cuGetErrorName(CUresult error, const char** pStr);
+CUresult cuGetErrorString(CUresult error, const char** pStr);
+#pragma endregion
+
 #pragma region device
 using CUdevice = struct CUdevice_st*;
 CUresult cuDeviceGet(CUdevice* device, int ordinal);
@@ -181,6 +186,9 @@ struct CUcontext_st;
 using CUcontext = struct CUcontext_st*;
 CUresult cuCtxCreate(CUcontext* pctx, unsigned int flags, CUdevice dev);
 CUresult cuCtxDestroy(CUcontext ctx);
+
+CUresult cuDevicePrimaryCtxRetain(CUcontext* pctx, CUdevice dev);
+CUresult cuDevicePrimaryCtxRelease(CUdevice dev);
 
 CUresult cuCtxGetCurrent(CUcontext* pctx);
 CUresult cuCtxSetCurrent(CUcontext ctx);

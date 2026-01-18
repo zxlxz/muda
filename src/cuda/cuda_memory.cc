@@ -16,7 +16,7 @@ CUresult cuMemGetInfo(size_t* free, size_t* total) {
   return CUDA_SUCCESS;
 }
 
-CUresult cuMemAlloc(void** dptr, size_t bytesize) {
+CUresult cuMemAlloc(CUdeviceptr* dptr, size_t bytesize) {
   if (!dptr || bytesize == 0) {
     return CUDA_ERROR_INVALID_VALUE;
   }
@@ -31,7 +31,7 @@ CUresult cuMemAlloc(void** dptr, size_t bytesize) {
   return CUDA_SUCCESS;
 }
 
-CUresult cuMemFree(void* dptr) {
+CUresult cuMemFree(CUdeviceptr dptr) {
   if (!dptr) {
     return CUDA_ERROR_INVALID_VALUE;
   }
@@ -48,7 +48,7 @@ CUresult cuMemFree(void* dptr) {
   return CUDA_SUCCESS;
 }
 
-CUresult cuMemAllocManaged(void** dptr, size_t bytesize, unsigned int flags) {
+CUresult cuMemAllocManaged(CUdeviceptr* dptr, size_t bytesize, unsigned int flags) {
   // Note: Metal does not have a separate managed memory model.
   // We treat managed memory as shared memory.
   return cuMemAlloc(dptr, bytesize);
@@ -59,7 +59,7 @@ CUresult cuMemAllocHost(void** hptr, size_t bytesize) {
     return CUDA_ERROR_INVALID_VALUE;
   }
 
-  *hptr = malloc(bytesize);
+  *hptr = __builtin_malloc(bytesize);
   if (!*hptr) {
     return CUDA_ERROR_OUT_OF_MEMORY;
   }
@@ -72,20 +72,20 @@ CUresult cuMemFreeHost(void* p) {
     return CUDA_ERROR_INVALID_VALUE;
   }
 
-  free(p);
+  __builtin_free(p);
   return CUDA_SUCCESS;
 }
 
-CUresult cuMemcpy(void* dst, const void* src, size_t bytesize) {
+CUresult cuMemcpy(CUdeviceptr dst, const void* src, size_t bytesize) {
   if (!dst || !src || bytesize == 0) {
     return CUDA_ERROR_INVALID_VALUE;
   }
 
-  std::memcpy(dst, src, bytesize);
+  __builtin_memcpy(dst, src, bytesize);
   return CUDA_SUCCESS;
 }
 
-CUresult cuMemcpyAsync(void* dst, const void* src, size_t bytesize, CUstream hStream) {
+CUresult cuMemcpyAsync(CUdeviceptr dst, const void* src, size_t bytesize, CUstream hStream) {
   (void)hStream;
 
   if (!dst || !src || bytesize == 0) {
@@ -94,11 +94,12 @@ CUresult cuMemcpyAsync(void* dst, const void* src, size_t bytesize, CUstream hSt
 
   // In Metal's shared memory model, we can directly memcpy
   // and stream is ignored
-  std::memcpy(dst, src, bytesize);
+  __builtin_memcpy(dst, src, bytesize);
   return CUDA_SUCCESS;
 }
 
-CUresult cuMemPrefetchAsync(void* devPtr, size_t count, CUmemLocation location, unsigned int flags, CUstream hStream) {
+CUresult cuMemPrefetchAsync(
+    CUdeviceptr devPtr, size_t count, CUmemLocation location, unsigned int flags, CUstream hStream) {
   (void)devPtr;
   (void)count;
   (void)location;
@@ -107,11 +108,11 @@ CUresult cuMemPrefetchAsync(void* devPtr, size_t count, CUmemLocation location, 
   return CUDA_SUCCESS;
 }
 
-CUresult cuMemsetD8(void* dst, unsigned char uc, size_t N) {
+CUresult cuMemsetD8(CUdeviceptr dst, unsigned char uc, size_t N) {
   return cuMemsetD8Async(dst, uc, N, nullptr);
 }
 
-CUresult cuMemsetD8Async(void* dst, unsigned char uc, size_t N, CUstream hStream) {
+CUresult cuMemsetD8Async(CUdeviceptr dst, unsigned char uc, size_t N, CUstream hStream) {
   (void)hStream;
 
   if (!dst) {
@@ -124,15 +125,15 @@ CUresult cuMemsetD8Async(void* dst, unsigned char uc, size_t N, CUstream hStream
 
   // in metal's shared memory model, we can directly memset
   // and stream is ignored
-  ::memset(dst, uc, N);
+  __builtin_memset(dst, uc, N);
   return CUDA_SUCCESS;
 }
 
-CUresult cuMemsetD16(void* dst, unsigned short us, size_t N) {
+CUresult cuMemsetD16(CUdeviceptr dst, unsigned short us, size_t N) {
   return cuMemsetD16Async(dst, us, N, nullptr);
 }
 
-CUresult cuMemsetD16Async(void* dst, unsigned short us, size_t N, CUstream hStream) {
+CUresult cuMemsetD16Async(CUdeviceptr dst, unsigned short us, size_t N, CUstream hStream) {
   (void)hStream;
 
   if (!dst) {
@@ -152,11 +153,11 @@ CUresult cuMemsetD16Async(void* dst, unsigned short us, size_t N, CUstream hStre
   return CUDA_SUCCESS;
 }
 
-CUresult cuMemsetD32(void* dst, unsigned int ui, size_t N) {
+CUresult cuMemsetD32(CUdeviceptr dst, unsigned int ui, size_t N) {
   return cuMemsetD32Async(dst, ui, N, nullptr);
 }
 
-CUresult cuMemsetD32Async(void* dst, unsigned int ui, size_t N, CUstream hStream) {
+CUresult cuMemsetD32Async(CUdeviceptr dst, unsigned int ui, size_t N, CUstream hStream) {
   (void)hStream;
 
   if (!dst) {

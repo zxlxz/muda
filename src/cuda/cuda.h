@@ -2,7 +2,7 @@
 
 #include <stddef.h>
 
-using size_t = decltype(sizeof(0));
+using size_t = __SIZE_TYPE__;
 
 enum CUresult {
   CUDA_SUCCESS = 0,
@@ -207,6 +207,8 @@ CUresult cuStreamSynchronize(CUstream hStream);
 #pragma endregion
 
 #pragma region memory
+using CUdeviceptr = void*;
+
 enum CUmemorytype {
   CU_MEMORYTYPE_HOST = 0,
   CU_MEMORYTYPE_DEVICE = 1,
@@ -219,6 +221,7 @@ enum class CUmemLocationType {
   CU_MEM_LOCATION_TYPE_ARRAY = 2,
   CU_MEM_LOCATION_TYPE_UNIFIED = 3,
 };
+
 struct CUmemLocation {
   CUmemLocationType type;
   int id;
@@ -226,26 +229,25 @@ struct CUmemLocation {
 
 CUresult cuMemGetInfo(size_t* free, size_t* total);
 
-CUresult cuMemAlloc(void** dptr, size_t bytesize);
-CUresult cuMemFree(void* dptr);
+CUresult cuMemAlloc(CUdeviceptr* dptr, size_t bytesize);
+CUresult cuMemFree(CUdeviceptr dptr);
 
-CUresult cuMemAllocManaged(void** dptr, size_t bytesize, unsigned int flags);
-CUresult cuMemPrefetchAsync(void* devPtr, size_t count, CUmemLocation location, unsigned int flags, CUstream hStream);
+CUresult cuMemAllocManaged(CUdeviceptr* dptr, size_t bytesize, unsigned int flags);
+CUresult cuMemPrefetchAsync(CUdeviceptr devPtr, size_t count, CUmemLocation location, unsigned int flags, CUstream hStream);
 
 CUresult cuMemAllocHost(void** pp, size_t bytesize);
 CUresult cuMemFreeHost(void* p);
 
-CUresult cuMemcpy(void* dst, const void* src, size_t bytesize);
-CUresult cuMemcpyAsync(void* dst, const void* src, size_t bytesize, CUstream hStream);
+CUresult cuMemcpy(CUdeviceptr dst, const CUdeviceptr src, size_t bytesize);
+CUresult cuMemcpyAsync(CUdeviceptr dst, const CUdeviceptr src, size_t bytesize, CUstream hStream);
 
-CUresult cuMemsetD8(void* dst, unsigned char uc, size_t N);
-CUresult cuMemsetD8Async(void* dst, unsigned char uc, size_t N, CUstream hStream);
+CUresult cuMemsetD8(CUdeviceptr dst, unsigned char uc, size_t N);
+CUresult cuMemsetD8Async(CUdeviceptr dst, unsigned char uc, size_t N, CUstream hStream);
+CUresult cuMemsetD16(CUdeviceptr dst, unsigned short us, size_t N);
+CUresult cuMemsetD16Async(CUdeviceptr dst, unsigned short us, size_t N, CUstream hStream);
 
-CUresult cuMemsetD16(void* dst, unsigned short us, size_t N);
-CUresult cuMemsetD16Async(void* dst, unsigned short us, size_t N, CUstream hStream);
-
-CUresult cuMemsetD32(void* dst, unsigned int ui, size_t N);
-CUresult cuMemsetD32Async(void* dst, unsigned int ui, size_t N, CUstream hStream);
+CUresult cuMemsetD32(CUdeviceptr dst, unsigned int ui, size_t N);
+CUresult cuMemsetD32Async(CUdeviceptr dst, unsigned int ui, size_t N, CUstream hStream);
 
 #pragma endregion
 
@@ -256,7 +258,7 @@ struct CUDA_MEMCPY3D {
   unsigned int srcLOD;
   CUmemorytype srcMemoryType;
   const void* srcHost;
-  const void* srcDevice;
+  CUdeviceptr srcDevice;
   CUarray srcArray;
   unsigned int srcPitch;   // ignored when src is array
   unsigned int srcHeight;  // ignored when src is array; may be 0 if Depth==1
@@ -265,7 +267,7 @@ struct CUDA_MEMCPY3D {
   unsigned int dstLOD;
   CUmemorytype dstMemoryType;
   void* dstHost;
-  void* dstDevice;
+  CUdeviceptr dstDevice;
   CUarray dstArray;
   unsigned int dstPitch;   // ignored when dst is array
   unsigned int dstHeight;  // ignored when dst is array; may be 0 if Depth==1

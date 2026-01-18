@@ -175,10 +175,16 @@ CUresult cuGetErrorString(CUresult error, const char** pStr);
 
 #pragma region device
 using CUdevice = struct CUdevice_st*;
+
+enum CUdevice_attribute{
+  CU_DEVICE_ATTRIBUTE_PCI_BUS_ID = 33,
+};
+
 CUresult cuDeviceGet(CUdevice* device, int ordinal);
 CUresult cuDeviceGetCount(int* count);
 CUresult cuDeviceGetName(char* name, int len, CUdevice dev);
 CUresult cuDeviceTotalMem(size_t* bytes, CUdevice dev);
+CUresult cuDeviceGetAttribute(int* pi, CUdevice_attribute attrib, CUdevice dev);
 #pragma endregion
 
 #pragma region context
@@ -197,6 +203,7 @@ CUresult cuCtxPushCurrent(CUcontext ctx);
 CUresult cuCtxPopCurrent(CUcontext* pctx);
 
 CUresult cuCtxSynchronize();
+CUresult cuCtxGetDevice(CUdevice* device);
 #pragma endregion
 
 #pragma region stream
@@ -216,7 +223,8 @@ enum CUmemorytype {
   CU_MEMORYTYPE_UNIFIED = 3,
 };
 
-enum class CUmemLocationType {
+enum CUmemLocationType {
+  CU_MEM_LOCATION_TYPE_HOST = 0,
   CU_MEM_LOCATION_TYPE_DEVICE = 1,
   CU_MEM_LOCATION_TYPE_ARRAY = 2,
   CU_MEM_LOCATION_TYPE_UNIFIED = 3,
@@ -233,7 +241,8 @@ CUresult cuMemAlloc(CUdeviceptr* dptr, size_t bytesize);
 CUresult cuMemFree(CUdeviceptr dptr);
 
 CUresult cuMemAllocManaged(CUdeviceptr* dptr, size_t bytesize, unsigned int flags);
-CUresult cuMemPrefetchAsync(CUdeviceptr devPtr, size_t count, CUmemLocation location, unsigned int flags, CUstream hStream);
+CUresult cuMemPrefetchAsync(
+    CUdeviceptr devPtr, size_t count, CUmemLocation location, unsigned int flags, CUstream hStream);
 
 CUresult cuMemAllocHost(void** pp, size_t bytesize);
 CUresult cuMemFreeHost(void* p);

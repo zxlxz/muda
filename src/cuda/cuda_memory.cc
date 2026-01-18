@@ -76,7 +76,7 @@ CUresult cuMemFreeHost(void* p) {
   return CUDA_SUCCESS;
 }
 
-CUresult cuMemcpy(CUdeviceptr dst, const void* src, size_t bytesize) {
+CUresult cuMemcpy(CUdeviceptr dst, CUdeviceptr src, size_t bytesize) {
   if (!dst || !src || bytesize == 0) {
     return CUDA_ERROR_INVALID_VALUE;
   }
@@ -85,7 +85,7 @@ CUresult cuMemcpy(CUdeviceptr dst, const void* src, size_t bytesize) {
   return CUDA_SUCCESS;
 }
 
-CUresult cuMemcpyAsync(CUdeviceptr dst, const void* src, size_t bytesize, CUstream hStream) {
+CUresult cuMemcpyAsync(CUdeviceptr dst, CUdeviceptr src, size_t bytesize, CUstream hStream) {
   (void)hStream;
 
   if (!dst || !src || bytesize == 0) {

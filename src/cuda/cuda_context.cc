@@ -49,3 +49,13 @@ CUresult cuCtxSynchronize() {
   device.Synchronize();
   return CUDA_SUCCESS;
 }
+
+CUresult cuCtxGetDevice(CUdevice* device) {
+  if (!device) {
+    return CUDA_ERROR_INVALID_VALUE;
+  }
+
+  auto& dev = CUdevice_st::global();
+  *device = &dev;
+  return CUDA_SUCCESS;
+}

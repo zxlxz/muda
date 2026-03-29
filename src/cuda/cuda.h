@@ -1,8 +1,7 @@
 #pragma once
 
 #include <stddef.h>
-
-using size_t = __SIZE_TYPE__;
+#include <stdlib.h>
 
 enum CUresult {
   CUDA_SUCCESS = 0,
@@ -174,16 +173,16 @@ CUresult cuGetErrorString(CUresult error, const char** pStr);
 #pragma endregion
 
 #pragma region device
-using CUdevice = struct CUdevice_st*;
+using CUdevice = int;
 
-enum CUdevice_attribute{
+enum CUdevice_attribute {
   CU_DEVICE_ATTRIBUTE_PCI_BUS_ID = 33,
 };
 
 CUresult cuDeviceGet(CUdevice* device, int ordinal);
 CUresult cuDeviceGetCount(int* count);
 CUresult cuDeviceGetName(char* name, int len, CUdevice dev);
-CUresult cuDeviceTotalMem(size_t* bytes, CUdevice dev);
+CUresult cuDeviceTotalMem_v2(size_t* bytes, CUdevice dev);
 CUresult cuDeviceGetAttribute(int* pi, CUdevice_attribute attrib, CUdevice dev);
 #pragma endregion
 
@@ -209,12 +208,12 @@ CUresult cuCtxGetDevice(CUdevice* device);
 #pragma region stream
 using CUstream = struct CUstream_st*;
 CUresult cuStreamCreate(CUstream* phStream, unsigned int flags);
-CUresult cuStreamDestroy(CUstream hStream);
+CUresult cuStreamDestroy_v2(CUstream hStream);
 CUresult cuStreamSynchronize(CUstream hStream);
 #pragma endregion
 
 #pragma region memory
-using CUdeviceptr = void*;
+using CUdeviceptr = uintptr_t;
 
 enum CUmemorytype {
   CU_MEMORYTYPE_HOST = 0,
@@ -237,12 +236,11 @@ struct CUmemLocation {
 
 CUresult cuMemGetInfo(size_t* free, size_t* total);
 
-CUresult cuMemAlloc(CUdeviceptr* dptr, size_t bytesize);
-CUresult cuMemFree(CUdeviceptr dptr);
+CUresult cuMemAlloc_v2(CUdeviceptr* dptr, size_t bytesize);
+CUresult cuMemFree_v2(CUdeviceptr dptr);
 
 CUresult cuMemAllocManaged(CUdeviceptr* dptr, size_t bytesize, unsigned int flags);
-CUresult cuMemPrefetchAsync(
-    CUdeviceptr devPtr, size_t count, CUmemLocation location, unsigned int flags, CUstream hStream);
+CUresult cuMemPrefetchAsync_v2(CUdeviceptr devPtr, size_t count, CUmemLocation location, unsigned int flags, CUstream hStream);
 
 CUresult cuMemAllocHost(void** pp, size_t bytesize);
 CUresult cuMemFreeHost(void* p);
@@ -250,7 +248,7 @@ CUresult cuMemFreeHost(void* p);
 CUresult cuMemcpy(CUdeviceptr dst, const CUdeviceptr src, size_t bytesize);
 CUresult cuMemcpyAsync(CUdeviceptr dst, const CUdeviceptr src, size_t bytesize, CUstream hStream);
 
-CUresult cuMemsetD8(CUdeviceptr dst, unsigned char uc, size_t N);
+CUresult cuMemsetD8_v2(CUdeviceptr dst, unsigned char uc, size_t N);
 CUresult cuMemsetD8Async(CUdeviceptr dst, unsigned char uc, size_t N, CUstream hStream);
 CUresult cuMemsetD16(CUdeviceptr dst, unsigned short us, size_t N);
 CUresult cuMemsetD16Async(CUdeviceptr dst, unsigned short us, size_t N, CUstream hStream);
@@ -314,13 +312,13 @@ struct CUDA_ARRAY3D_DESCRIPTOR {
   CUarray_flags Flags;
 };
 
-CUresult cuArray3DCreate(CUarray* pHandle, const CUDA_ARRAY3D_DESCRIPTOR* pAllocateArray);
+CUresult cuArray3DCreate_v2(CUarray* pHandle, const CUDA_ARRAY3D_DESCRIPTOR* pAllocateArray);
 CUresult cuArrayDestroy(CUarray hArray);
 
-CUresult cuArray3DGetDescriptor(CUDA_ARRAY3D_DESCRIPTOR* pArrayDescriptor, CUarray hArray);
+CUresult cuArray3DGetDescriptor_v2(CUDA_ARRAY3D_DESCRIPTOR* pArrayDescriptor, CUarray hArray);
 
-CUresult cuMemcpy3D(struct CUDA_MEMCPY3D* pCopy);
-CUresult cuMemcpy3DAsync(struct CUDA_MEMCPY3D* pCopy, CUstream hStream);
+CUresult cuMemcpy3D_v2(struct CUDA_MEMCPY3D* pCopy);
+CUresult cuMemcpy3DAsync_v2(struct CUDA_MEMCPY3D* pCopy, CUstream hStream);
 #pragma endregion
 
 #pragma region texture
@@ -362,7 +360,7 @@ struct CUDA_RESOURCE_DESC {
   CUresourcetype resType;
   union {
     struct {
-      CUarray array;
+      CUarray hArray;
     } array;
   } res;
 };
@@ -378,10 +376,7 @@ struct CUDA_RESOURCE_VIEW_DESC {
   size_t lastLayer;
 };
 
-CUresult cuTexObjectCreate(CUtexObject* pTexObject,
-                           const CUDA_RESOURCE_DESC* pResDesc,
-                           const CUDA_TEXTURE_DESC* pTexDesc,
-                           const CUDA_RESOURCE_VIEW_DESC* pResViewDesc);
+CUresult cuTexObjectCreate(CUtexObject* pTexObject, const CUDA_RESOURCE_DESC* pResDesc, const CUDA_TEXTURE_DESC* pTexDesc, const CUDA_RESOURCE_VIEW_DESC* pResViewDesc);
 CUresult cuTexObjectDestroy(CUtexObject texObject);
 #pragma endregion
 
@@ -416,15 +411,16 @@ struct CUParam_st {
   CUParam_st(T* ptr, Type t = Buffer) : _type{t}, _size{sizeof(T)}, _data{ptr} {}
 };
 
-CUresult cuLaunchKernel(CUfunction f,
-                        unsigned gridDimX,
-                        unsigned gridDimY,
-                        unsigned gridDimZ,
-                        unsigned blockDimX,
-                        unsigned blockDimY,
-                        unsigned blockDimZ,
-                        unsigned sharedMemBytes,
-                        CUstream hStream,
-                        const CUParam params[],
-                        void** extra);
+struct CUlaunchConfig {
+  unsigned gridDimX;
+  unsigned gridDimY;
+  unsigned gridDimZ;
+  unsigned blockDimX;
+  unsigned blockDimY;
+  unsigned blockDimZ;
+  unsigned sharedMemBytes;
+  CUstream hStream;
+};
+
+CUresult cuLaunchKernelEx(const CUlaunchConfig* conf, CUfunction f, const CUParam params[], void** extra);
 #pragma endregion

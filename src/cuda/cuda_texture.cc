@@ -61,7 +61,7 @@ CUresult cuTexObjectCreate(CUtexObject* pTexObject,
     return CUDA_ERROR_NOT_SUPPORTED;
   }
 
-  auto texture = pResDesc->res.array.array;
+  auto texture = pResDesc->res.array.hArray;
   if (!texture) {
     return CUDA_ERROR_INVALID_VALUE;
   }

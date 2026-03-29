@@ -35,22 +35,13 @@ static void setComputeParams(MTL::ComputeCommandEncoder& encoder, const CUParam 
   }
 }
 
-CUresult cuLaunchKernel(CUfunction f,
-                        unsigned gridDimX,
-                        unsigned gridDimY,
-                        unsigned gridDimZ,
-                        unsigned blockDimX,
-                        unsigned blockDimY,
-                        unsigned blockDimZ,
-                        unsigned /*sharedMemBytes*/,
-                        CUstream stream,
-                        const CUParam params[],
-                        void** /*extra*/) {
-  if (!f) {
+CUresult cuLaunchKernelEx(const CUlaunchConfig* conf, CUfunction f, const CUParam params[], void** /*extra*/) {
+  if (!f || !conf) {
     return CUDA_ERROR_INVALID_VALUE;
   }
 
   auto& device = CUdevice_st::global();
+  auto stream = conf->hStream;
   if (stream == nullptr) {
     stream = static_cast<CUstream_st*>(device.defaultStream());
   }
@@ -79,8 +70,8 @@ CUresult cuLaunchKernel(CUfunction f,
   setComputeParams(*compute_encoder, params);
 
   // Set threadgroups and threads per threadgroup
-  const auto threadsPerGrid = MTL::Size{gridDimX * blockDimX, gridDimY * blockDimY, gridDimZ * blockDimZ};
-  const auto threadsPerThreadGroup = MTL::Size{blockDimX, blockDimY, blockDimZ};
+  const auto threadsPerGrid = MTL::Size{conf->gridDimX * conf->blockDimX, conf->gridDimY * conf->blockDimY, conf->gridDimZ * conf->blockDimZ};
+  const auto threadsPerThreadGroup = MTL::Size{conf->blockDimX, conf->blockDimY, conf->blockDimZ};
   compute_encoder->dispatchThreads(threadsPerGrid, threadsPerThreadGroup);
   compute_encoder->endEncoding();
 

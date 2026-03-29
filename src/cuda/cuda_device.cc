@@ -11,7 +11,7 @@ CUresult cuDeviceGet(CUdevice* device, int ordinal) {
     return CUDA_ERROR_INVALID_DEVICE;
   }
 
-  *device = &dev;
+  *device = 0;
   return CUDA_SUCCESS;
 }
 
@@ -25,7 +25,7 @@ CUresult cuDeviceGetCount(int* count) {
 }
 
 CUresult cuDeviceGetName(char* name, int len, CUdevice dev) {
-  if (!name || len <= 0 || !dev) {
+  if (!name || len <= 0 || dev < 0) {
     return CUDA_ERROR_INVALID_VALUE;
   }
 
@@ -36,8 +36,8 @@ CUresult cuDeviceGetName(char* name, int len, CUdevice dev) {
   return CUDA_SUCCESS;
 }
 
-CUresult cuDeviceTotalMem(size_t* bytes, CUdevice dev) {
-  if (!bytes || !dev) {
+CUresult cuDeviceTotalMem_v2(size_t* bytes, CUdevice dev) {
+  if (!bytes || dev < 0) {
     return CUDA_ERROR_INVALID_VALUE;
   }
 

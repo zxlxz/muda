@@ -63,7 +63,7 @@ static auto makeTextureDesc(const CUDA_ARRAY3D_DESCRIPTOR& pAllocateArray) -> MT
   return texDesc;
 }
 
-CUresult cuArray3DCreate(CUarray* pHandle, const struct CUDA_ARRAY3D_DESCRIPTOR* pAllocateArray) {
+CUresult cuArray3DCreate_v2(CUarray* pHandle, const struct CUDA_ARRAY3D_DESCRIPTOR* pAllocateArray) {
   if (!pHandle || !pAllocateArray) {
     return CUDA_ERROR_INVALID_VALUE;
   }
@@ -90,7 +90,7 @@ CUresult cuArrayDestroy(CUarray hArray) {
   return CUDA_SUCCESS;
 }
 
-CUresult cuArray3DGetDescriptor(struct CUDA_ARRAY3D_DESCRIPTOR* pArrayDescriptor, CUarray hArray) {
+CUresult cuArray3DGetDescriptor_v2(struct CUDA_ARRAY3D_DESCRIPTOR* pArrayDescriptor, CUarray hArray) {
   if (!pArrayDescriptor || !hArray) {
     return CUDA_ERROR_INVALID_VALUE;
   }
@@ -109,11 +109,11 @@ CUresult cuArray3DGetDescriptor(struct CUDA_ARRAY3D_DESCRIPTOR* pArrayDescriptor
   return CUDA_SUCCESS;
 }
 
-CUresult cuMemcpy3D(CUDA_MEMCPY3D* pCopy) {
-  return cuMemcpy3DAsync(pCopy, nullptr);
+CUresult cuMemcpy3D_v2(CUDA_MEMCPY3D* pCopy) {
+  return cuMemcpy3DAsync_v2(pCopy, nullptr);
 }
 
-CUresult cuMemcpy3DAsync(struct CUDA_MEMCPY3D* pCopy, CUstream hStream) {
+CUresult cuMemcpy3DAsync_v2(struct CUDA_MEMCPY3D* pCopy, CUstream hStream) {
   (void)hStream;
 
   if (!pCopy) {
@@ -127,8 +127,8 @@ CUresult cuMemcpy3DAsync(struct CUDA_MEMCPY3D* pCopy, CUstream hStream) {
     return CUDA_SUCCESS;
   }
 
-  const auto srcPtr = pCopy->srcHost ? pCopy->srcHost : pCopy->srcDevice;
-  const auto dstPtr = pCopy->dstHost ? pCopy->dstHost : pCopy->dstDevice;
+  const void* srcPtr = pCopy->srcHost ? pCopy->srcHost : reinterpret_cast<const void*>(pCopy->srcDevice);
+  void* dstPtr = pCopy->dstHost ? pCopy->dstHost : reinterpret_cast<void*>(pCopy->dstDevice);
   const auto srcArray = pCopy->srcArray;
   const auto dstArray = pCopy->dstArray;
   if (bool(srcPtr) == bool(srcArray)) {

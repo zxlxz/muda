@@ -16,7 +16,7 @@ CUresult cuMemGetInfo(size_t* free, size_t* total) {
   return CUDA_SUCCESS;
 }
 
-CUresult cuMemAlloc(CUdeviceptr* dptr, size_t bytesize) {
+CUresult cuMemAlloc_v2(CUdeviceptr* dptr, size_t bytesize) {
   if (!dptr || bytesize == 0) {
     return CUDA_ERROR_INVALID_VALUE;
   }
@@ -27,11 +27,11 @@ CUresult cuMemAlloc(CUdeviceptr* dptr, size_t bytesize) {
     return CUDA_ERROR_OUT_OF_MEMORY;
   }
 
-  *dptr = buffer->contents();
+  *dptr = reinterpret_cast<CUdeviceptr>(buffer->contents());
   return CUDA_SUCCESS;
 }
 
-CUresult cuMemFree(CUdeviceptr dptr) {
+CUresult cuMemFree_v2(CUdeviceptr dptr) {
   if (!dptr) {
     return CUDA_ERROR_INVALID_VALUE;
   }
@@ -39,7 +39,7 @@ CUresult cuMemFree(CUdeviceptr dptr) {
   auto& device = CUdevice_st::global();
 
   // find the buffer info
-  auto bufRange = device.findBuffer(dptr);
+  auto bufRange = device.findBuffer(reinterpret_cast<const void*>(dptr));
   if (bufRange.buffer == nullptr || bufRange.offset != 0) {
     return CUDA_ERROR_INVALID_VALUE;
   }
@@ -51,7 +51,7 @@ CUresult cuMemFree(CUdeviceptr dptr) {
 CUresult cuMemAllocManaged(CUdeviceptr* dptr, size_t bytesize, unsigned int flags) {
   // Note: Metal does not have a separate managed memory model.
   // We treat managed memory as shared memory.
-  return cuMemAlloc(dptr, bytesize);
+  return cuMemAlloc_v2(dptr, bytesize);
 }
 
 CUresult cuMemAllocHost(void** hptr, size_t bytesize) {
@@ -81,7 +81,7 @@ CUresult cuMemcpy(CUdeviceptr dst, CUdeviceptr src, size_t bytesize) {
     return CUDA_ERROR_INVALID_VALUE;
   }
 
-  __builtin_memcpy(dst, src, bytesize);
+  __builtin_memcpy(reinterpret_cast<void*>(dst), reinterpret_cast<void*>(src), bytesize);
   return CUDA_SUCCESS;
 }
 
@@ -94,11 +94,11 @@ CUresult cuMemcpyAsync(CUdeviceptr dst, CUdeviceptr src, size_t bytesize, CUstre
 
   // In Metal's shared memory model, we can directly memcpy
   // and stream is ignored
-  __builtin_memcpy(dst, src, bytesize);
+  __builtin_memcpy(reinterpret_cast<void*>(dst), reinterpret_cast<void*>(src), bytesize);
   return CUDA_SUCCESS;
 }
 
-CUresult cuMemPrefetchAsync(
+CUresult cuMemPrefetchAsync_v2(
     CUdeviceptr devPtr, size_t count, CUmemLocation location, unsigned int flags, CUstream hStream) {
   (void)devPtr;
   (void)count;
@@ -108,7 +108,7 @@ CUresult cuMemPrefetchAsync(
   return CUDA_SUCCESS;
 }
 
-CUresult cuMemsetD8(CUdeviceptr dst, unsigned char uc, size_t N) {
+CUresult cuMemsetD8_v2(CUdeviceptr dst, unsigned char uc, size_t N) {
   return cuMemsetD8Async(dst, uc, N, nullptr);
 }
 
@@ -125,7 +125,7 @@ CUresult cuMemsetD8Async(CUdeviceptr dst, unsigned char uc, size_t N, CUstream h
 
   // in metal's shared memory model, we can directly memset
   // and stream is ignored
-  __builtin_memset(dst, uc, N);
+  __builtin_memset(reinterpret_cast<void*>(dst), uc, N);
   return CUDA_SUCCESS;
 }
 
@@ -146,7 +146,7 @@ CUresult cuMemsetD16Async(CUdeviceptr dst, unsigned short us, size_t N, CUstream
 
   // in metal's shared memory model, we can directly memset
   // and stream is ignored
-  auto ptr = static_cast<unsigned short*>(dst);
+  auto ptr = reinterpret_cast<unsigned short*>(dst);
   for (size_t i = 0; i < N; ++i) {
     ptr[i] = us;
   }
@@ -170,7 +170,7 @@ CUresult cuMemsetD32Async(CUdeviceptr dst, unsigned int ui, size_t N, CUstream h
 
   // in metal's shared memory model, we can directly memset
   // and stream is ignored
-  auto ptr = static_cast<unsigned int*>(dst);
+  auto ptr = reinterpret_cast<unsigned int*>(dst);
   for (size_t i = 0; i < N; ++i) {
     ptr[i] = ui;
   }

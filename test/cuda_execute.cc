@@ -48,14 +48,13 @@ int main(int argc, const char* argv[]) {
       alpha, X, Y, n, {},
   };
 
-  cuLaunchKernel(func,      // func
-                 16, 1, 1,  // grid dim
-                 64, 1, 1,  // block dim
-                 0,         // shared mem
-                 nullptr,   // stream
-                 args,      // kernel params
-                 nullptr    // extra
-  );
+  CUlaunchConfig config = {
+      16, 1, 1,  // grid dim
+      64, 1, 1,  // block dim
+      0,         // shared mem
+      nullptr,   // stream
+  };
+  cuLaunchKernelEx(&config, func, args, nullptr);
 
   // wait
   SAFE_CALL(cudaStreamSynchronize(nullptr));

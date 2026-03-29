@@ -219,3 +219,7 @@ cufftResult cufftExecC2R(cufftHandle plan, cufftComplex* idata, cufftReal* odata
   }
   return CUFFT_SUCCESS;
 }
+
+cufftResult cufftSetStream(cufftHandle plan, CUstream stream) {
+  return CUFFT_SUCCESS;
+}

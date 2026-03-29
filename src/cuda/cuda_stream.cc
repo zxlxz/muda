@@ -16,7 +16,7 @@ CUresult cuStreamCreate(CUstream* phStream, unsigned int flags) {
   return CUDA_SUCCESS;
 }
 
-CUresult cuStreamDestroy(CUstream hStream) {
+CUresult cuStreamDestroy_v2(CUstream hStream) {
   if (!hStream) {
     return CUDA_ERROR_INVALID_VALUE;
   }

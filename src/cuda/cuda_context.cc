@@ -56,6 +56,6 @@ CUresult cuCtxGetDevice(CUdevice* device) {
   }
 
   auto& dev = CUdevice_st::global();
-  *device = &dev;
+  *device = 0;
   return CUDA_SUCCESS;
 }

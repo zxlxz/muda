@@ -6,9 +6,9 @@ CUresult cuMemGetInfo(size_t* free, size_t* total) {
     return CUDA_ERROR_INVALID_VALUE;
   }
 
-  auto& device = CUdevice_st::global();
-  const auto maxSize = device.maxBufferLength();
-  const auto usedSize = device.currentAllocatedSize();
+  static auto& ctx = MetalCtx::global();
+  const auto maxSize = ctx->maxBufferLength();
+  const auto usedSize = ctx->currentAllocatedSize();
 
   *total = maxSize;
   *free = maxSize - usedSize;
@@ -21,8 +21,8 @@ CUresult cuMemAlloc_v2(CUdeviceptr* dptr, size_t bytesize) {
     return CUDA_ERROR_INVALID_VALUE;
   }
 
-  auto& device = CUdevice_st::global();
-  auto buffer = device.newBuffer(bytesize, MTL::ResourceStorageModeShared);
+  static auto& ctx = MetalCtx::global();
+  auto buffer = ctx.newBuffer(bytesize);
   if (!buffer) {
     return CUDA_ERROR_OUT_OF_MEMORY;
   }
@@ -33,18 +33,16 @@ CUresult cuMemAlloc_v2(CUdeviceptr* dptr, size_t bytesize) {
 
 CUresult cuMemFree_v2(CUdeviceptr dptr) {
   if (!dptr) {
+    return CUDA_SUCCESS;
+  }
+
+  static auto& ctx = MetalCtx::global();
+  auto buf = ctx.findBuffer(reinterpret_cast<void*>(dptr));
+  if (!buf) {
     return CUDA_ERROR_INVALID_VALUE;
   }
 
-  auto& device = CUdevice_st::global();
-
-  // find the buffer info
-  auto bufRange = device.findBuffer(reinterpret_cast<const void*>(dptr));
-  if (bufRange.buffer == nullptr || bufRange.offset != 0) {
-    return CUDA_ERROR_INVALID_VALUE;
-  }
-  device.delBuffer(bufRange.buffer);
-
+  ctx.delBuffer(buf);
   return CUDA_SUCCESS;
 }
 
@@ -109,6 +107,9 @@ CUresult cuMemPrefetchAsync_v2(
 }
 
 CUresult cuMemsetD8_v2(CUdeviceptr dst, unsigned char uc, size_t N) {
+  if (!dst) {
+    return CUDA_ERROR_INVALID_VALUE;
+  }
   return cuMemsetD8Async(dst, uc, N, nullptr);
 }
 

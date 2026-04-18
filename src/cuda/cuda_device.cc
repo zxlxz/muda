@@ -6,7 +6,7 @@ CUresult cuDeviceGet(CUdevice* device, int ordinal) {
     return CUDA_ERROR_INVALID_VALUE;
   }
 
-  auto& dev = CUdevice_st::global();
+  auto& dev = MetalCtx::global();
   if (ordinal > 0) {
     return CUDA_ERROR_INVALID_DEVICE;
   }
@@ -41,8 +41,8 @@ CUresult cuDeviceTotalMem_v2(size_t* bytes, CUdevice dev) {
     return CUDA_ERROR_INVALID_VALUE;
   }
 
-  auto& device = CUdevice_st::global();
-  *bytes = device.maxBufferLength();
+  static auto& ctx = MetalCtx::global();
+  *bytes = ctx->maxBufferLength();
 
   return CUDA_SUCCESS;
 }

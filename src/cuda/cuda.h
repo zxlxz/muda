@@ -229,6 +229,12 @@ enum CUmemLocationType {
   CU_MEM_LOCATION_TYPE_UNIFIED = 3,
 };
 
+enum CUmemAttach_flags {
+  CU_MEM_ATTACH_GLOBAL = 0x1,
+  CU_MEM_ATTACH_HOST = 0x2,
+  CU_MEM_ATTACH_SINGLE = 0x4,
+};
+
 struct CUmemLocation {
   CUmemLocationType type;
   int id;
@@ -242,7 +248,7 @@ CUresult cuMemFree_v2(CUdeviceptr dptr);
 CUresult cuMemAllocManaged(CUdeviceptr* dptr, size_t bytesize, unsigned int flags);
 CUresult cuMemPrefetchAsync_v2(CUdeviceptr devPtr, size_t count, CUmemLocation location, unsigned int flags, CUstream hStream);
 
-CUresult cuMemAllocHost(void** pp, size_t bytesize);
+CUresult cuMemAllocHost_v2(void** pp, size_t bytesize);
 CUresult cuMemFreeHost(void* p);
 
 CUresult cuMemcpy(CUdeviceptr dst, const CUdeviceptr src, size_t bytesize);
@@ -260,28 +266,28 @@ CUresult cuMemsetD32Async(CUdeviceptr dst, unsigned int ui, size_t N, CUstream h
 
 #pragma region array
 using CUarray = struct CUarray_st*;
-struct CUDA_MEMCPY3D {
-  unsigned int srcXInBytes, srcY, srcZ;
-  unsigned int srcLOD;
+struct CUDA_MEMCPY3D_st {
+  size_t srcXInBytes, srcY, srcZ;
+  size_t srcLOD;
   CUmemorytype srcMemoryType;
   const void* srcHost;
   CUdeviceptr srcDevice;
   CUarray srcArray;
-  unsigned int srcPitch;   // ignored when src is array
-  unsigned int srcHeight;  // ignored when src is array; may be 0 if Depth==1
+  size_t srcPitch;   // ignored when src is array
+  size_t srcHeight;  // ignored when src is array; may be 0 if Depth==1
 
-  unsigned int dstXInBytes, dstY, dstZ;
-  unsigned int dstLOD;
+  size_t dstXInBytes, dstY, dstZ;
+  size_t dstLOD;
   CUmemorytype dstMemoryType;
   void* dstHost;
   CUdeviceptr dstDevice;
   CUarray dstArray;
-  unsigned int dstPitch;   // ignored when dst is array
-  unsigned int dstHeight;  // ignored when dst is array; may be 0 if Depth==1
+  size_t dstPitch;   // ignored when dst is array
+  size_t dstHeight;  // ignored when dst is array; may be 0 if Depth==1
 
-  unsigned int WidthInBytes;
-  unsigned int Height;
-  unsigned int Depth;
+  size_t WidthInBytes;
+  size_t Height;
+  size_t Depth;
 };
 
 enum CUarray_format {
@@ -293,32 +299,34 @@ enum CUarray_format {
   CU_AD_FORMAT_SIGNED_INT32 = 0x0a,
   CU_AD_FORMAT_HALF = 0x10,
   CU_AD_FORMAT_FLOAT = 0x20,
+
+  CU_AD_FORMAT_MAX = 0xFFFFU,
 };
 
-enum CUarray_flags {
-  CU_ARRAY_DEFAULT = 0x00,
-  CU_ARRAY_LAYERED = 0x01,
-  CU_ARRAY_CUBEMAP = 0x02,
-  CU_ARRAY_SURFACE_LDST = 0x04,
-  CU_ARRAY_TEXTURE_GATHER = 0x08,
+enum CUarray3d_flags : unsigned int {
+  CUDA_ARRAY3D_DEFAULT = 0x00,
+  CUDA_ARRAY3D_LAYERED = 0x01,
+  CUDA_ARRAY3D_CUBEMAP = 0x02,
+  CUDA_ARRAY3D_SURFACE_LDST = 0x04,
+  CUDA_ARRAY3D_TEXTURE_GATHER = 0x08,
 };
 
-struct CUDA_ARRAY3D_DESCRIPTOR {
+struct CUDA_ARRAY3D_DESCRIPTOR_st {
   size_t Width;
   size_t Height;
   size_t Depth;
   CUarray_format Format;
   unsigned int NumChannels;
-  CUarray_flags Flags;
+  unsigned int Flags;
 };
 
-CUresult cuArray3DCreate_v2(CUarray* pHandle, const CUDA_ARRAY3D_DESCRIPTOR* pAllocateArray);
+CUresult cuArray3DCreate_v2(CUarray* pHandle, const CUDA_ARRAY3D_DESCRIPTOR_st* pAllocateArray);
 CUresult cuArrayDestroy(CUarray hArray);
 
-CUresult cuArray3DGetDescriptor_v2(CUDA_ARRAY3D_DESCRIPTOR* pArrayDescriptor, CUarray hArray);
+CUresult cuArray3DGetDescriptor_v2(CUDA_ARRAY3D_DESCRIPTOR_st* pArrayDescriptor, CUarray hArray);
 
-CUresult cuMemcpy3D_v2(struct CUDA_MEMCPY3D* pCopy);
-CUresult cuMemcpy3DAsync_v2(struct CUDA_MEMCPY3D* pCopy, CUstream hStream);
+CUresult cuMemcpy3D_v2(struct CUDA_MEMCPY3D_st* pCopy);
+CUresult cuMemcpy3DAsync_v2(struct CUDA_MEMCPY3D_st* pCopy, CUstream hStream);
 #pragma endregion
 
 #pragma region texture
@@ -346,7 +354,7 @@ enum CUtrsf_flags {
   CU_TRSF_NORMALIZED_COORDINATES = 0x1,
 };
 
-struct CUDA_TEXTURE_DESC {
+struct CUDA_TEXTURE_DESC_st {
   CUaddress_mode addressMode[3];
   CUfilter_mode filterMode;
   unsigned int flags;
@@ -356,7 +364,7 @@ struct CUDA_TEXTURE_DESC {
   float maxMipmapLevelClamp;
 };
 
-struct CUDA_RESOURCE_DESC {
+struct CUDA_RESOURCE_DESC_st {
   CUresourcetype resType;
   union {
     struct {
@@ -365,18 +373,9 @@ struct CUDA_RESOURCE_DESC {
   } res;
 };
 
-struct CUDA_RESOURCE_VIEW_DESC {
-  unsigned int viewFormat;
-  size_t width;
-  size_t height;
-  size_t depth;
-  size_t firstMipmapLevel;
-  size_t lastMipmapLevel;
-  size_t firstLayer;
-  size_t lastLayer;
-};
+struct CUDA_RESOURCE_VIEW_DESC_st;
 
-CUresult cuTexObjectCreate(CUtexObject* pTexObject, const CUDA_RESOURCE_DESC* pResDesc, const CUDA_TEXTURE_DESC* pTexDesc, const CUDA_RESOURCE_VIEW_DESC* pResViewDesc);
+CUresult cuTexObjectCreate(CUtexObject* pTexObject, const CUDA_RESOURCE_DESC_st* pResDesc, const CUDA_TEXTURE_DESC_st* pTexDesc, const CUDA_RESOURCE_VIEW_DESC_st* pResViewDesc);
 CUresult cuTexObjectDestroy(CUtexObject texObject);
 #pragma endregion
 
@@ -390,8 +389,6 @@ CUresult cuModuleGetFunction(CUfunction* hfunc, CUmodule hmod, const char* name)
 #pragma endregion
 
 #pragma region function
-using CUParam = struct CUParam_st;
-
 struct CUParam_st {
   enum Type { None, Bytes, Buffer, Texture, Sampler };
   Type _type = Type::None;
@@ -422,5 +419,5 @@ struct CUlaunchConfig {
   CUstream hStream;
 };
 
-CUresult cuLaunchKernelEx(const CUlaunchConfig* conf, CUfunction f, const CUParam params[], void** extra);
+CUresult cuLaunchKernelEx(const CUlaunchConfig* conf, CUfunction f, const CUParam_st params[], void** extra);
 #pragma endregion

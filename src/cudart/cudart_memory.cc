@@ -1,4 +1,4 @@
-#include "../cuda/metal.h"
+#include "../cuda/cuda.h"
 #include "cuda_runtime_api.h"
 
 cudaError_t cudaMalloc(void** ptr, size_t size) {
@@ -6,39 +6,20 @@ cudaError_t cudaMalloc(void** ptr, size_t size) {
     return cudaErrorInvalidValue;
   }
 
-  if (size == 0) {
-    *ptr = nullptr;
-    return cudaSuccess;
+  auto dptr = CUdeviceptr{};
+  if (auto err = ::cuMemAlloc_v2(&dptr, size)) {
+    return static_cast<cudaError_t>(err);
   }
+  *ptr = reinterpret_cast<void*>(dptr);
 
-  auto& device = CUdevice_st::global();
-  auto buffer = device.newBuffer(size, MTL::ResourceStorageModeShared);
-  if (!buffer) {
-    return cudaErrorMemoryAllocation;
-  }
-
-  // get the user space address of the buffer
-  auto data = buffer->contents();
-  *ptr = data;
   return cudaSuccess;
 }
 
 cudaError_t cudaFree(void* ptr) {
-  if (!ptr) {
-    return cudaSuccess;
+  const auto dptr = reinterpret_cast<CUdeviceptr>(ptr);
+  if (auto err = ::cuMemFree_v2(dptr)) {
+    return static_cast<cudaError_t>(err);
   }
-
-  auto& device = CUdevice_st::global();
-
-  // find the buffer info
-  auto bufferInfo = device.findBuffer(ptr);
-
-  // if buffer not found
-  //  means this is not a valid device pointer
-  if (bufferInfo.buffer == nullptr) {
-    return cudaErrorInvalidDevicePointer;
-  }
-  device.delBuffer(bufferInfo.buffer);
   return cudaSuccess;
 }
 
@@ -56,38 +37,27 @@ cudaError_t cudaMemPrefetchAsync(const void* /*ptr*/,
 }
 
 cudaError_t cudaMemset(void* devPtr, int value, size_t count) {
-  return cudaMemsetAsync(devPtr, value, count, nullptr);
+  return ::cudaMemsetAsync(devPtr, value, count, nullptr);
 }
 
-cudaError_t cudaMemsetAsync(void* ptr, int value, size_t count, cudaStream_t /*stream*/) {
-  if (!ptr) {
-    return cudaErrorInvalidValue;
+cudaError_t cudaMemsetAsync(void* ptr, int value, size_t count, cudaStream_t stream) {
+  const auto dptr = reinterpret_cast<CUdeviceptr>(ptr);
+  const auto val = static_cast<unsigned char>(value & 0xFF);
+  if (auto err = ::cuMemsetD8Async(dptr, val, count, stream)) {
+    return static_cast<cudaError_t>(err);
   }
-
-  if (count == 0) {
-    return cudaSuccess;
-  }
-
-  ::memset(ptr, value, count);
   return cudaSuccess;
 }
 
 cudaError_t cudaMemcpy(void* dst, const void* src, size_t count, cudaMemcpyKind kind) {
-  return cudaMemcpyAsync(dst, src, count, kind, nullptr);
+  return ::cudaMemcpyAsync(dst, src, count, kind, nullptr);
 }
 
 cudaError_t cudaMemcpyAsync(void* dst, const void* src, size_t count, cudaMemcpyKind kind, cudaStream_t stream) {
-  (void)stream;
-
-  if (!dst || !src) {
-    return cudaErrorInvalidValue;
+  const auto d_dst = reinterpret_cast<CUdeviceptr>(dst);
+  const auto d_src = reinterpret_cast<CUdeviceptr>(src);
+  if (auto err = ::cuMemcpyAsync(d_dst, d_src, count, stream)) {
+    return static_cast<cudaError_t>(err);
   }
-
-  if (count == 0) {
-    return cudaSuccess;
-  }
-
-  // because metal buffer is shared memory, we can directly memcpy
-  ::memcpy(dst, src, count);
   return cudaSuccess;
 }

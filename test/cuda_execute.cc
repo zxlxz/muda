@@ -17,7 +17,7 @@ int main(int argc, const char* argv[]) {
   SAFE_CALL(cudaFree(nullptr));
 
   // load model
-  const auto path = "./axpy.metallib";
+  const auto path = "/Users/zxlxz/Workspace/muda/test/axpy.metal";
   auto mod = CUmodule{};
   if (auto res = cuModuleLoad(&mod, path); res != 0) {
     std::println("cuModuleLoad failed, error={}", static_cast<int>(res));
@@ -44,7 +44,7 @@ int main(int argc, const char* argv[]) {
   }
 
   // exec kernel
-  const CUParam args[] = {
+  const CUParam_st args[] = {
       alpha, X, Y, n, {},
   };
 

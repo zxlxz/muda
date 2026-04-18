@@ -19,7 +19,7 @@ static auto toSamplerAddressMode(CUaddress_mode mode) -> MTL::SamplerAddressMode
   }
 }
 
-static auto makeSamplerState(const CUDA_TEXTURE_DESC& pTexDesc, const MTL::Texture& tex) -> MTL::SamplerState* {
+static auto createSamplerState(const CUDA_TEXTURE_DESC_st& pTexDesc, const MTL::Texture& tex) -> MTL::SamplerState* {
   auto samplerDesc = AutoRelease{MTL::SamplerDescriptor::alloc()};
   if (!samplerDesc) {
     return nullptr;
@@ -44,15 +44,15 @@ static auto makeSamplerState(const CUDA_TEXTURE_DESC& pTexDesc, const MTL::Textu
   samplerDesc->setRAddressMode(addressMode[2]);
   samplerDesc->setNormalizedCoordinates(normalizedCoords);
 
-  auto& device = CUdevice_st::global();
+  auto& device = MetalCtx::global();
   auto samplerState = device.newSamplerState(samplerDesc, const_cast<MTL::Texture*>(&tex));
   return samplerState;
 }
 
 CUresult cuTexObjectCreate(CUtexObject* pTexObject,
-                           const CUDA_RESOURCE_DESC* pResDesc,
-                           const CUDA_TEXTURE_DESC* pTexDesc,
-                           const CUDA_RESOURCE_VIEW_DESC* pResViewDesc) {
+                           const CUDA_RESOURCE_DESC_st* pResDesc,
+                           const CUDA_TEXTURE_DESC_st* pTexDesc,
+                           const CUDA_RESOURCE_VIEW_DESC_st* pResViewDesc) {
   if (!pTexObject || !pResDesc || !pTexDesc) {
     return CUDA_ERROR_INVALID_VALUE;
   }
@@ -66,7 +66,7 @@ CUresult cuTexObjectCreate(CUtexObject* pTexObject,
     return CUDA_ERROR_INVALID_VALUE;
   }
 
-  auto samplerState = makeSamplerState(*pTexDesc, *texture);
+  auto samplerState = createSamplerState(*pTexDesc, *texture);
   if (!samplerState) {
     return CUDA_ERROR_OUT_OF_MEMORY;
   }
@@ -81,7 +81,7 @@ CUresult cuTexObjectDestroy(CUtexObject texObject) {
   }
 
   auto samplerState = __builtin_bit_cast(MTL::SamplerState*, texObject);
-  auto& device = CUdevice_st::global();
+  auto& device = MetalCtx::global();
   device.delSamplerState(samplerState);
 
   return CUDA_SUCCESS;

@@ -6,7 +6,7 @@ CUresult cuStreamCreate(CUstream* phStream, unsigned int flags) {
     return CUDA_ERROR_INVALID_VALUE;
   }
 
-  auto& device = CUdevice_st::global();
+  auto& device = MetalCtx::global();
   auto command_queue = device.newCommandQueue();
   if (!command_queue) {
     return CUDA_ERROR_OUT_OF_MEMORY;
@@ -21,7 +21,7 @@ CUresult cuStreamDestroy_v2(CUstream hStream) {
     return CUDA_ERROR_INVALID_VALUE;
   }
 
-  auto& device = CUdevice_st::global();
+  auto& device = MetalCtx::global();
   device.delCommandQueue(hStream);
   return CUDA_SUCCESS;
 }
@@ -30,8 +30,8 @@ CUresult cuStreamSynchronize(CUstream hStream) {
   auto command_queue = static_cast<MTL::CommandQueue*>(hStream);
 
   if (!command_queue) {
-    auto& device = CUdevice_st::global();
-    command_queue = device.defaultStream();
+    auto& device = MetalCtx::global();
+    command_queue = device.defaultCommandQueue();
   }
 
   // use a empty command buffer to synchronize

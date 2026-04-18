@@ -1,32 +1,35 @@
 #include "cuda.h"
 #include "metal.h"
 
-static void setComputeParams(MTL::ComputeCommandEncoder& encoder, const CUParam params[]) {
+static void setComputeParams(MTL::ComputeCommandEncoder& encoder, const CUParam_st params[]) {
   static constexpr auto MAX_PARAMS = 64;
-  static auto& device = CUdevice_st::global();
+  static auto& ctx = MetalCtx::global();
 
   for (auto i = 0; i < MAX_PARAMS; ++i) {
     auto& p = params[i];
     switch (p._type) {
-      case CUParam::None: {
+      case CUParam_st::None: {
         break;
       }
 
-      case CUParam::Bytes: {
+      case CUParam_st::Bytes: {
         encoder.setBytes(p._data, p._size, i);
         break;
       }
-      case CUParam::Buffer:
-        if (auto buff = device.findBuffer(p._data)) {
-          encoder.setBuffer(buff.buffer, buff.offset, i);
+      case CUParam_st::Buffer:
+        if (auto buff = ctx.findBuffer(p._data)) {
+          const auto base = static_cast<const char*>(buff->contents());
+          const auto data = static_cast<const char*>(p._data);
+          const auto offset = data - base;
+          encoder.setBuffer(buff, offset, i);
         }
         break;
-      case CUParam::Texture: {
+      case CUParam_st::Texture: {
         const auto texture = static_cast<const MTL::Texture*>(p._data);
         encoder.setTexture(texture, i);
         break;
       }
-      case CUParam::Sampler: {
+      case CUParam_st::Sampler: {
         const auto sampler = static_cast<const MTL::SamplerState*>(p._data);
         encoder.setSamplerState(sampler, i);
         break;
@@ -35,20 +38,20 @@ static void setComputeParams(MTL::ComputeCommandEncoder& encoder, const CUParam 
   }
 }
 
-CUresult cuLaunchKernelEx(const CUlaunchConfig* conf, CUfunction f, const CUParam params[], void** /*extra*/) {
+CUresult cuLaunchKernelEx(const CUlaunchConfig* conf, CUfunction f, const CUParam_st params[], void** /*extra*/) {
   if (!f || !conf) {
     return CUDA_ERROR_INVALID_VALUE;
   }
 
-  auto& device = CUdevice_st::global();
+  auto& device = MetalCtx::global();
   auto stream = conf->hStream;
   if (stream == nullptr) {
-    stream = static_cast<CUstream_st*>(device.defaultStream());
+    stream = static_cast<CUstream_st*>(device.defaultCommandQueue());
   }
 
   // Get device and create compute pipeline state
   NS::Error* error = nullptr;
-  auto pipeline_state = AutoRelease{device.newComputePipelineState(f, &error)};
+  auto pipeline_state = AutoRelease{device->newComputePipelineState(f, &error)};
   if (!pipeline_state) {
     return CUDA_ERROR_INVALID_VALUE;
   }
@@ -70,7 +73,8 @@ CUresult cuLaunchKernelEx(const CUlaunchConfig* conf, CUfunction f, const CUPara
   setComputeParams(*compute_encoder, params);
 
   // Set threadgroups and threads per threadgroup
-  const auto threadsPerGrid = MTL::Size{conf->gridDimX * conf->blockDimX, conf->gridDimY * conf->blockDimY, conf->gridDimZ * conf->blockDimZ};
+  const auto threadsPerGrid =
+      MTL::Size{conf->gridDimX * conf->blockDimX, conf->gridDimY * conf->blockDimY, conf->gridDimZ * conf->blockDimZ};
   const auto threadsPerThreadGroup = MTL::Size{conf->blockDimX, conf->blockDimY, conf->blockDimZ};
   compute_encoder->dispatchThreads(threadsPerGrid, threadsPerThreadGroup);
   compute_encoder->endEncoding();

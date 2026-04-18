@@ -19,6 +19,8 @@ enum cufftResult {
   CUFFT_SETUP_FAILED = 7,
   CUFFT_INVALID_SIZE = 8,
   CUFFT_UNALIGNED_DATA = 9,
+  CUFFT_INVALID_DEVICE = 10,
+  CUFFT_NO_WORKSPACE = 11,
 };
 
 enum cufftType {
@@ -27,9 +29,7 @@ enum cufftType {
   CUFFT_C2C = 0x29,  // complex to complex
 };
 
-using CUstream = struct CUstream_st*;
 using cufftHandle = int;
-
 static constexpr auto CUFFT_FORWARD = -1;
 static constexpr auto CUFFT_INVERSE = 1;
 static constexpr auto CUFFT_PLAN_NULL = static_cast<cufftHandle>(-1);
@@ -42,4 +42,5 @@ cufftResult cufftExecC2C(cufftHandle plan, cufftComplex* idata, cufftComplex* od
 cufftResult cufftExecR2C(cufftHandle plan, cufftReal* idata, cufftComplex* odata);
 cufftResult cufftExecC2R(cufftHandle plan, cufftComplex* idata, cufftReal* odata);
 
+using CUstream = struct CUstream_st*;
 cufftResult cufftSetStream(cufftHandle plan, CUstream stream);

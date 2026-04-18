@@ -1,28 +1,30 @@
-#include "../cuda/metal.h"
+#include "../cuda/cuda.h"
 #include "cuda_runtime_api.h"
 
-static constexpr int METAL_DEVICE_ID = 0;
-
-cudaError_t cudaGetDeviceCount(int* count) {
-  if (!count) {
+cudaError_t cudaGetDeviceCount(int* pCount) {
+  if (!pCount) {
     return cudaErrorInvalidValue;
   }
-  *count = 1;
+  if (auto err = ::cuDeviceGetCount(pCount)) {
+    return static_cast<cudaError_t>(err);
+  }
   return cudaSuccess;
 }
 
-cudaError_t cudaGetDevice(int* device) {
-  if (!device) {
+cudaError_t cudaGetDevice(int* pDevice) {
+  if (!pDevice) {
     return cudaErrorInvalidValue;
   }
-  *device = METAL_DEVICE_ID;
+
+  auto dev = CUdevice{};
+  if (auto err = ::cuDeviceGet(&dev, 0)) {
+    return static_cast<cudaError_t>(err);
+  }
+  *pDevice = dev;
   return cudaSuccess;
 }
 
 cudaError_t cudaSetDevice(int device) {
-  if (device != METAL_DEVICE_ID) {
-    return cudaErrorInvalidValue;
-  }
   return cudaSuccess;
 }
 
@@ -33,26 +35,21 @@ cudaError_t cudaGetDeviceProperties(cudaDeviceProp* prop, int device) {
     return cudaErrorInvalidValue;
   }
 
-  if (device != METAL_DEVICE_ID) {
-    return cudaErrorInvalidValue;
+  prop->multiProcessorCount = DEFAULT_MP_COUNT;
+  if (auto err = ::cuDeviceTotalMem_v2(&prop->totalGlobalMem, device)) {
+    return static_cast<cudaError_t>(err);
   }
 
-  auto& impl = CUdevice_st::global();
-
-  const auto name = impl.name()->cString(NS::UTF8StringEncoding);
-  strncpy(prop->name, name, sizeof(prop->name) - 1);
-
-  prop->totalGlobalMem = impl.recommendedMaxWorkingSetSize();
-
-  // cannot get real multiprocessor count from metal device,
-  // so use the default value
-  prop->multiProcessorCount = DEFAULT_MP_COUNT;
+  if (auto err = ::cuDeviceGetName(prop->name, sizeof(prop->name), device)) {
+    return static_cast<cudaError_t>(err);
+  }
 
   return cudaSuccess;
 }
 
 cudaError_t cudaDeviceSynchronize() {
-  auto& device = CUdevice_st::global();
-  device.Synchronize();
+  if (auto err = ::cuCtxSynchronize()) {
+    return static_cast<cudaError_t>(err);
+  }
   return cudaSuccess;
 }

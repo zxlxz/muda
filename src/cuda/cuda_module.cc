@@ -28,11 +28,11 @@ CUresult cuModuleLoad(CUmodule* module, const char* path) {
     return CUDA_ERROR_FILE_NOT_FOUND;
   }
 
-  const auto u8_path = NS::String::string(path, NS::UTF8StringEncoding);
+  const auto ns_path = NS::String::string(path, NS::UTF8StringEncoding);
 
+  auto& device = MetalCtx::global();
   auto err = static_cast<NS::Error*>(nullptr);
-  auto& device = CUdevice_st::global();
-  auto library = device.newLibrary(u8_path, &err);
+  auto library = device.loadLibrary(ns_path, &err);
   if (err) {
     return toCudaError(err);
   }

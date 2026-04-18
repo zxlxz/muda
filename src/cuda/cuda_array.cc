@@ -29,9 +29,9 @@ static auto toPixelFormat(CUarray_format format) -> MTL::PixelFormat {
   }
 }
 
-static auto toTextureType(const CUDA_ARRAY3D_DESCRIPTOR& desc) -> MTL::TextureType {
+static auto toTextureType(const CUDA_ARRAY3D_DESCRIPTOR_st& desc) -> MTL::TextureType {
   switch (desc.Flags) {
-    case CU_ARRAY_LAYERED: {
+    case CUDA_ARRAY3D_LAYERED: {
       return desc.Depth > 1 ? MTL::TextureType2DArray : MTL::TextureType1DArray;
     }
     default: {
@@ -40,7 +40,7 @@ static auto toTextureType(const CUDA_ARRAY3D_DESCRIPTOR& desc) -> MTL::TextureTy
   }
 }
 
-static auto makeTextureDesc(const CUDA_ARRAY3D_DESCRIPTOR& pAllocateArray) -> MTL::TextureDescriptor* {
+static auto newTextureDesc(const CUDA_ARRAY3D_DESCRIPTOR_st& pAllocateArray) -> MTL::TextureDescriptor* {
   const auto texFormat = toPixelFormat(pAllocateArray.Format);
   if (texFormat == MTL::PixelFormatUnspecialized) {
     return nullptr;
@@ -54,7 +54,7 @@ static auto makeTextureDesc(const CUDA_ARRAY3D_DESCRIPTOR& pAllocateArray) -> MT
   texDesc->setWidth(pAllocateArray.Width);
   texDesc->setHeight(pAllocateArray.Height);
 
-  if (pAllocateArray.Flags == CU_ARRAY_LAYERED) {
+  if (pAllocateArray.Flags == CUDA_ARRAY3D_LAYERED) {
     texDesc->setArrayLength(pAllocateArray.Depth);
   } else {
     texDesc->setDepth(pAllocateArray.Depth);
@@ -63,18 +63,20 @@ static auto makeTextureDesc(const CUDA_ARRAY3D_DESCRIPTOR& pAllocateArray) -> MT
   return texDesc;
 }
 
-CUresult cuArray3DCreate_v2(CUarray* pHandle, const struct CUDA_ARRAY3D_DESCRIPTOR* pAllocateArray) {
+CUresult cuArray3DCreate_v2(CUarray* pHandle, const CUDA_ARRAY3D_DESCRIPTOR_st* pAllocateArray) {
   if (!pHandle || !pAllocateArray) {
     return CUDA_ERROR_INVALID_VALUE;
   }
 
-  auto texDesc = AutoRelease{makeTextureDesc(*pAllocateArray)};
+  auto texDesc = newTextureDesc(*pAllocateArray);
   if (!texDesc) {
     return CUDA_ERROR_NOT_SUPPORTED;
   }
 
-  auto& device = CUdevice_st::global();
+  auto& device = MetalCtx::global();
   auto texture = device.newTexture(texDesc);
+  texDesc->release();
+
   *pHandle = static_cast<CUarray>(texture);
   return CUDA_SUCCESS;
 }
@@ -84,13 +86,13 @@ CUresult cuArrayDestroy(CUarray hArray) {
     return CUDA_ERROR_INVALID_VALUE;
   }
 
-  auto& device = CUdevice_st::global();
+  auto& device = MetalCtx::global();
   device.delTexture(static_cast<MTL::Texture*>(hArray));
 
   return CUDA_SUCCESS;
 }
 
-CUresult cuArray3DGetDescriptor_v2(struct CUDA_ARRAY3D_DESCRIPTOR* pArrayDescriptor, CUarray hArray) {
+CUresult cuArray3DGetDescriptor_v2(CUDA_ARRAY3D_DESCRIPTOR_st* pArrayDescriptor, CUarray hArray) {
   if (!pArrayDescriptor || !hArray) {
     return CUDA_ERROR_INVALID_VALUE;
   }
@@ -104,16 +106,16 @@ CUresult cuArray3DGetDescriptor_v2(struct CUDA_ARRAY3D_DESCRIPTOR* pArrayDescrip
   pArrayDescriptor->Depth = hArray->depth();
   pArrayDescriptor->Format = toArrayFormat(pixelFormat);
   pArrayDescriptor->NumChannels = 1;  // Metal textures are single-channel in this implementation
-  pArrayDescriptor->Flags = isLayered ? CU_ARRAY_LAYERED : CU_ARRAY_DEFAULT;
+  pArrayDescriptor->Flags = isLayered ? CUDA_ARRAY3D_LAYERED : CUDA_ARRAY3D_DEFAULT;
 
   return CUDA_SUCCESS;
 }
 
-CUresult cuMemcpy3D_v2(CUDA_MEMCPY3D* pCopy) {
+CUresult cuMemcpy3D_v2(CUDA_MEMCPY3D_st* pCopy) {
   return cuMemcpy3DAsync_v2(pCopy, nullptr);
 }
 
-CUresult cuMemcpy3DAsync_v2(struct CUDA_MEMCPY3D* pCopy, CUstream hStream) {
+CUresult cuMemcpy3DAsync_v2(struct CUDA_MEMCPY3D_st* pCopy, CUstream hStream) {
   (void)hStream;
 
   if (!pCopy) {

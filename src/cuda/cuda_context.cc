@@ -45,7 +45,7 @@ CUresult cuDevicePrimaryCtxRelease(CUdevice dev) {
 }
 
 CUresult cuCtxSynchronize() {
-  auto& device = CUdevice_st::global();
+  auto& device = MetalCtx::global();
   device.Synchronize();
   return CUDA_SUCCESS;
 }
@@ -55,7 +55,7 @@ CUresult cuCtxGetDevice(CUdevice* device) {
     return CUDA_ERROR_INVALID_VALUE;
   }
 
-  auto& dev = CUdevice_st::global();
+  auto& dev = MetalCtx::global();
   *device = 0;
   return CUDA_SUCCESS;
 }

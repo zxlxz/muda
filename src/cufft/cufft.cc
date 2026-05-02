@@ -2,9 +2,6 @@
 
 #include <Accelerate/Accelerate.h>
 
-#include <mutex>
-#include <vector>
-
 struct cufftPlan {
   cufftPlan() = default;
   virtual ~cufftPlan() = default;
@@ -143,6 +140,49 @@ class cufftPlan1D : public cufftPlan {
   }
 };
 
+class cufftPlanManager {
+  static constexpr auto kMaxPlans = 1024;
+  cufftPlan* v[kMaxPlans] = {nullptr};
+
+ public:
+  auto create_1d(cufftType type, int nx, int batch) -> int {
+    auto idx = 0;
+    for (; idx < kMaxPlans; ++idx) {
+      if (v[idx] == nullptr) {
+        break;
+      }
+    }
+
+    if (idx == kMaxPlans) {
+      return -1;  // no space
+    }
+
+    auto plan = new cufftPlan1D{type, nx, batch};
+    v[idx] = plan;
+    return idx;
+  }
+
+  void destroy(int idx) {
+    auto p = (*this)[idx];
+    if (!p) return;
+
+    delete p;
+    v[idx] = nullptr;
+  }
+
+  auto operator[](int idx) -> cufftPlan* {
+    if (idx < 0 || idx >= kMaxPlans) {
+      return nullptr;
+    }
+    return v[idx];
+  }
+};
+
+static auto manager() -> cufftPlanManager& {
+  static auto m = cufftPlanManager{};
+  return m;
+}
+
 cufftResult cufftPlan1d(cufftHandle* pPlan, int nx, cufftType type, int batch) {
   if (!pPlan || nx <= 0 || batch < 0) {
     return CUFFT_INVALID_VALUE;
@@ -152,7 +192,8 @@ cufftResult cufftPlan1d(cufftHandle* pPlan, int nx, cufftType type, int batch) {
     return CUFFT_INVALID_VALUE;
   }
 
-  *pPlan = new cufftPlan1D{type, nx, batch};
+  auto p = manager().create_1d(type, nx, batch);
+  *pPlan = p;
   return CUFFT_SUCCESS;
 }
 
@@ -161,7 +202,7 @@ cufftResult cufftDestroy(cufftHandle plan) {
     return CUFFT_INVALID_PLAN;
   }
 
-  delete plan;
+  manager().destroy(plan);
   return CUFFT_SUCCESS;
 }
 
@@ -173,7 +214,12 @@ cufftResult cufftExecC2C(cufftHandle plan, cufftComplex* idata, cufftComplex* od
     return CUFFT_INVALID_VALUE;
   }
 
-  return plan->exec_c2c(idata, odata, direction);
+  auto p = manager()[plan];
+  if (!p) {
+    return CUFFT_INVALID_PLAN;
+  }
+
+  return p->exec_c2c(idata, odata, direction);
 }
 
 cufftResult cufftExecR2C(cufftHandle plan, cufftReal* ireal, cufftComplex* ocomp) {
@@ -184,7 +230,11 @@ cufftResult cufftExecR2C(cufftHandle plan, cufftReal* ireal, cufftComplex* ocomp
     return CUFFT_INVALID_VALUE;
   }
 
-  return plan->exec_r2c(ireal, ocomp);
+  auto p = manager()[plan];
+  if (!p) {
+    return CUFFT_INVALID_PLAN;
+  }
+  return p->exec_r2c(ireal, ocomp);
 }
 
 cufftResult cufftExecC2R(cufftHandle plan, cufftComplex* idata, cufftReal* odata) {
@@ -194,13 +244,18 @@ cufftResult cufftExecC2R(cufftHandle plan, cufftComplex* idata, cufftReal* odata
   if (!idata || !odata) {
     return CUFFT_INVALID_VALUE;
   }
-  return plan->exec_c2r(idata, odata);
+
+  auto p = manager()[plan];
+  if (!p) {
+    return CUFFT_INVALID_PLAN;
+  }
+  return p->exec_c2r(idata, odata);
 }
 
-cufftResult cufftSetStream(cufftHandle plan, CUstream stream) {
+cufftResult cufftSetStream(cufftHandle plan, [[maybe_unused]] CUstream stream) {
   if (!plan) {
     return CUFFT_INVALID_PLAN;
   }
-  (void)stream;  // stream is not supported in this implementation
+
   return CUFFT_SUCCESS;
 }

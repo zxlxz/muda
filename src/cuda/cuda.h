@@ -240,7 +240,15 @@ struct CUmemLocation {
   int id;
 };
 
+enum CUpointer_attribute_enum {
+  CU_POINTER_ATTRIBUTE_CONTEXT,
+  CU_POINTER_ATTRIBUTE_MEMORY_TYPE,
+  CU_POINTER_ATTRIBUTE_DEVICE_POINTER,
+  CU_POINTER_ATTRIBUTE_HOST_POINTER,
+};
+
 CUresult cuMemGetInfo(size_t* free, size_t* total);
+CUresult cuPointerGetAttribute(void* data, CUpointer_attribute_enum attribute, CUdeviceptr ptr);
 
 CUresult cuMemAlloc_v2(CUdeviceptr* dptr, size_t bytesize);
 CUresult cuMemFree_v2(CUdeviceptr dptr);
@@ -256,10 +264,11 @@ CUresult cuMemcpyAsync(CUdeviceptr dst, const CUdeviceptr src, size_t bytesize, 
 
 CUresult cuMemsetD8_v2(CUdeviceptr dst, unsigned char uc, size_t N);
 CUresult cuMemsetD8Async(CUdeviceptr dst, unsigned char uc, size_t N, CUstream hStream);
-CUresult cuMemsetD16(CUdeviceptr dst, unsigned short us, size_t N);
+
+CUresult cuMemsetD16_v2(CUdeviceptr dst, unsigned short us, size_t N);
 CUresult cuMemsetD16Async(CUdeviceptr dst, unsigned short us, size_t N, CUstream hStream);
 
-CUresult cuMemsetD32(CUdeviceptr dst, unsigned int ui, size_t N);
+CUresult cuMemsetD32_v2(CUdeviceptr dst, unsigned int ui, size_t N);
 CUresult cuMemsetD32Async(CUdeviceptr dst, unsigned int ui, size_t N, CUstream hStream);
 
 #pragma endregion
@@ -375,7 +384,10 @@ struct CUDA_RESOURCE_DESC_st {
 
 struct CUDA_RESOURCE_VIEW_DESC_st;
 
-CUresult cuTexObjectCreate(CUtexObject* pTexObject, const CUDA_RESOURCE_DESC_st* pResDesc, const CUDA_TEXTURE_DESC_st* pTexDesc, const CUDA_RESOURCE_VIEW_DESC_st* pResViewDesc);
+CUresult cuTexObjectCreate(CUtexObject* pTexObject,
+                           const CUDA_RESOURCE_DESC_st* pResDesc,
+                           const CUDA_TEXTURE_DESC_st* pTexDesc,
+                           const CUDA_RESOURCE_VIEW_DESC_st* pResViewDesc);
 CUresult cuTexObjectDestroy(CUtexObject texObject);
 #pragma endregion
 

@@ -1,6 +1,6 @@
 
 aux_source_directory(. SRC)
-add_library(cufft ${SRC})
+add_library(cufft SHARED ${SRC})
 target_link_libraries(cufft "-framework Accelerate")
 
 install(TARGETS cufft DESTINATION lib)

@@ -29,11 +29,11 @@ enum cufftType {
   CUFFT_C2C = 0x29,  // complex to complex
 };
 
-using cufftHandle = struct cufftPlan*;
+using cufftHandle = int;
 
 static constexpr auto CUFFT_FORWARD = -1;
 static constexpr auto CUFFT_INVERSE = 1;
-static constexpr auto CUFFT_PLAN_NULL = static_cast<cufftHandle>(nullptr);
+static constexpr auto CUFFT_PLAN_NULL = -1;
 
 // NOTE: only 1d single is supported now
 cufftResult cufftPlan1d(cufftHandle* plan, int nx, cufftType type, int batch);

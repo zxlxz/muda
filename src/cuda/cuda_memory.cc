@@ -16,6 +16,34 @@ CUresult cuMemGetInfo(size_t* free, size_t* total) {
   return CUDA_SUCCESS;
 }
 
+CUresult cuPointerGetAttribute(void* data, CUpointer_attribute_enum attribute, CUdeviceptr ptr) {
+  if (!data) {
+    return CUDA_ERROR_INVALID_VALUE;
+  }
+
+  switch (attribute) {
+    case CU_POINTER_ATTRIBUTE_CONTEXT: {
+      return CUDA_ERROR_NOT_SUPPORTED;
+      break;
+    }
+    case CU_POINTER_ATTRIBUTE_MEMORY_TYPE: {
+      *reinterpret_cast<CUmemorytype*>(data) = CU_MEMORYTYPE_DEVICE;
+      break;
+    }
+    case CU_POINTER_ATTRIBUTE_DEVICE_POINTER: {
+      *reinterpret_cast<CUdeviceptr*>(data) = ptr;
+      break;
+    }
+    case CU_POINTER_ATTRIBUTE_HOST_POINTER: {
+      *reinterpret_cast<CUdeviceptr*>(data) = ptr;
+      break;
+    }
+    default: return CUDA_ERROR_INVALID_VALUE;
+  }
+
+  return CUDA_SUCCESS;
+}
+
 CUresult cuMemAlloc_v2(CUdeviceptr* dptr, size_t bytesize) {
   if (!dptr || bytesize == 0) {
     return CUDA_ERROR_INVALID_VALUE;
@@ -52,7 +80,7 @@ CUresult cuMemAllocManaged(CUdeviceptr* dptr, size_t bytesize, unsigned int flag
   return cuMemAlloc_v2(dptr, bytesize);
 }
 
-CUresult cuMemAllocHost(void** hptr, size_t bytesize) {
+CUresult cuMemAllocHost_v2(void** hptr, size_t bytesize) {
   if (!hptr || bytesize == 0) {
     return CUDA_ERROR_INVALID_VALUE;
   }
@@ -96,8 +124,7 @@ CUresult cuMemcpyAsync(CUdeviceptr dst, CUdeviceptr src, size_t bytesize, CUstre
   return CUDA_SUCCESS;
 }
 
-CUresult cuMemPrefetchAsync_v2(
-    CUdeviceptr devPtr, size_t count, CUmemLocation location, unsigned int flags, CUstream hStream) {
+CUresult cuMemPrefetchAsync_v2(CUdeviceptr devPtr, size_t count, CUmemLocation location, unsigned int flags, CUstream hStream) {
   (void)devPtr;
   (void)count;
   (void)location;
@@ -130,7 +157,7 @@ CUresult cuMemsetD8Async(CUdeviceptr dst, unsigned char uc, size_t N, CUstream h
   return CUDA_SUCCESS;
 }
 
-CUresult cuMemsetD16(CUdeviceptr dst, unsigned short us, size_t N) {
+CUresult cuMemsetD16_v2(CUdeviceptr dst, unsigned short us, size_t N) {
   return cuMemsetD16Async(dst, us, N, nullptr);
 }
 
@@ -154,7 +181,7 @@ CUresult cuMemsetD16Async(CUdeviceptr dst, unsigned short us, size_t N, CUstream
   return CUDA_SUCCESS;
 }
 
-CUresult cuMemsetD32(CUdeviceptr dst, unsigned int ui, size_t N) {
+CUresult cuMemsetD32_v2(CUdeviceptr dst, unsigned int ui, size_t N) {
   return cuMemsetD32Async(dst, ui, N, nullptr);
 }
 

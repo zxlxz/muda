@@ -240,7 +240,7 @@ struct CUmemLocation {
   int id;
 };
 
-enum CUpointer_attribute_enum {
+enum CUpointer_attribute {
   CU_POINTER_ATTRIBUTE_CONTEXT,
   CU_POINTER_ATTRIBUTE_MEMORY_TYPE,
   CU_POINTER_ATTRIBUTE_DEVICE_POINTER,
@@ -248,7 +248,7 @@ enum CUpointer_attribute_enum {
 };
 
 CUresult cuMemGetInfo(size_t* free, size_t* total);
-CUresult cuPointerGetAttribute(void* data, CUpointer_attribute_enum attribute, CUdeviceptr ptr);
+CUresult cuPointerGetAttribute(void* data, CUpointer_attribute attribute, CUdeviceptr ptr);
 
 CUresult cuMemAlloc_v2(CUdeviceptr* dptr, size_t bytesize);
 CUresult cuMemFree_v2(CUdeviceptr dptr);
@@ -384,10 +384,7 @@ struct CUDA_RESOURCE_DESC_st {
 
 struct CUDA_RESOURCE_VIEW_DESC_st;
 
-CUresult cuTexObjectCreate(CUtexObject* pTexObject,
-                           const CUDA_RESOURCE_DESC_st* pResDesc,
-                           const CUDA_TEXTURE_DESC_st* pTexDesc,
-                           const CUDA_RESOURCE_VIEW_DESC_st* pResViewDesc);
+CUresult cuTexObjectCreate(CUtexObject* pTexObject, const CUDA_RESOURCE_DESC_st* pResDesc, const CUDA_TEXTURE_DESC_st* pTexDesc, const CUDA_RESOURCE_VIEW_DESC_st* pResViewDesc);
 CUresult cuTexObjectDestroy(CUtexObject texObject);
 #pragma endregion
 
@@ -431,5 +428,6 @@ struct CUlaunchConfig {
   CUstream hStream;
 };
 
+CUresult cuLaunchKernelEx(const CUlaunchConfig* conf, CUfunction f, void* params[], void** extra);
 CUresult cuLaunchKernelEx(const CUlaunchConfig* conf, CUfunction f, const CUParam_st params[], void** extra);
 #pragma endregion

@@ -16,7 +16,7 @@ CUresult cuMemGetInfo(size_t* free, size_t* total) {
   return CUDA_SUCCESS;
 }
 
-CUresult cuPointerGetAttribute(void* data, CUpointer_attribute_enum attribute, CUdeviceptr ptr) {
+CUresult cuPointerGetAttribute(void* data, CUpointer_attribute attribute, CUdeviceptr ptr) {
   if (!data) {
     return CUDA_ERROR_INVALID_VALUE;
   }

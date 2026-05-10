@@ -25,19 +25,12 @@ class cufftPlan1D : public cufftPlan {
   cufftPlan1D(cufftType type, int len, int batch) : _type{type}, _len{len}, _batch{batch} {
     const auto c2c = vDSP_DFT_Interleaved_ComplextoComplex;
     switch (type) {
-      case CUFFT_R2C: {
-        _r2c = vDSP_DFT_zrop_CreateSetup(nullptr, _len, vDSP_DFT_FORWARD);
-        break;
-      }
-      case CUFFT_C2R: {
-        _c2r = vDSP_DFT_zrop_CreateSetup(nullptr, _len, vDSP_DFT_INVERSE);
-        break;
-      }
-      case CUFFT_C2C: {
+      case CUFFT_R2C: _r2c = vDSP_DFT_zrop_CreateSetup(nullptr, _len, vDSP_DFT_FORWARD); break;
+      case CUFFT_C2R: _c2r = vDSP_DFT_zrop_CreateSetup(nullptr, _len, vDSP_DFT_INVERSE); break;
+      case CUFFT_C2C:
         _fwd = vDSP_DFT_Interleaved_CreateSetup(nullptr, _len, vDSP_DFT_FORWARD, c2c);
         _inv = vDSP_DFT_Interleaved_CreateSetup(nullptr, _len, vDSP_DFT_INVERSE, c2c);
         break;
-      }
       default: break;
     }
   }
@@ -63,9 +56,9 @@ class cufftPlan1D : public cufftPlan {
     return CUFFT_SUCCESS;
   }
 
-  // Ir: fft_len
-  // Oc: comp_len = fft_len / 2 + 1
-  auto exec_r2c(cufftReal* Ir, cufftComplex* Oc) const -> cufftResult {
+  // I: fft_len
+  // O: comp_len = fft_len / 2 + 1
+  auto exec_r2c(cufftReal* I, cufftComplex* O) const -> cufftResult {
     if (!_r2c) {
       return CUFFT_INVALID_PLAN;
     }
@@ -73,24 +66,23 @@ class cufftPlan1D : public cufftPlan {
     const auto fft_len = _len;
     const auto comp_len = fft_len / 2 + 1;
 
-    auto Ii = static_cast<float*>(::malloc(fft_len * sizeof(float)));
-    auto Or = static_cast<float*>(::malloc(comp_len * sizeof(float)));
-    auto Oi = static_cast<float*>(::malloc(comp_len * sizeof(float)));
+    auto Ii = static_cast<float*>(__builtin_alloca(fft_len * sizeof(float)));
+    auto Or = static_cast<float*>(__builtin_alloca(comp_len * sizeof(float)));
+    auto Oi = static_cast<float*>(__builtin_alloca(comp_len * sizeof(float)));
 
     for (auto i = 0; i < _batch; ++i) {
-      vDSP_DFT_Execute(_r2c, Ir + i * fft_len, Ii, Or, Oi);
-      this->pack_complex(Or, Oi, Oc + i * comp_len);
+      auto Ir = I + i * fft_len;
+      auto Oc = O + i * comp_len;
+      vDSP_DFT_Execute(_r2c, Ir, Ii, Or, Oi);
+      this->pack_complex(Or, Oi, Oc);
     }
 
-    ::free(Ii);
-    ::free(Or);
-    ::free(Oi);
     return CUFFT_SUCCESS;
   }
 
-  // Ic: comp_len = fft_len / 2 + 1
-  // Or: fft_len
-  auto exec_c2r(cufftComplex* Ic, cufftReal* Or) const -> cufftResult {
+  // I: comp_len = fft_len / 2 + 1
+  // O: fft_len
+  auto exec_c2r(cufftComplex* I, cufftReal* O) const -> cufftResult {
     if (!_c2r) {
       return CUFFT_INVALID_PLAN;
     }
@@ -98,18 +90,17 @@ class cufftPlan1D : public cufftPlan {
     const auto fft_len = _len;
     const auto comp_len = fft_len / 2 + 1;
 
-    auto Ir = static_cast<float*>(::malloc(comp_len * sizeof(float)));
-    auto Ii = static_cast<float*>(::malloc(comp_len * sizeof(float)));
-    auto Oi = static_cast<float*>(::malloc(fft_len * sizeof(float)));
+    auto Ir = static_cast<float*>(__builtin_alloca(comp_len * sizeof(float)));
+    auto Ii = static_cast<float*>(__builtin_alloca(comp_len * sizeof(float)));
+    auto Oi = static_cast<float*>(__builtin_alloca(fft_len * sizeof(float)));
 
     for (auto i = 0; i < _batch; ++i) {
-      this->unpack_complex(Ic + i * comp_len, Ir, Ii);
+      auto Ic = I + i * comp_len;
+      auto Or = O + i * fft_len;
+      this->unpack_complex(Ic, Ir, Ii);
       vDSP_DFT_Execute(_c2r, Ir, Ii, Or, Oi);
     }
 
-    ::free(Ir);
-    ::free(Ii);
-    ::free(Oi);
     return CUFFT_SUCCESS;
   }
 
@@ -145,7 +136,12 @@ class cufftPlanManager {
   cufftPlan* v[kMaxPlans] = {nullptr};
 
  public:
-  auto create_1d(cufftType type, int nx, int batch) -> int {
+  static auto instance() -> cufftPlanManager& {
+    static auto m = cufftPlanManager{};
+    return m;
+  }
+
+  auto create_1d(cufftType type, int nx, int batch) -> cufftHandle {
     auto idx = 0;
     for (; idx < kMaxPlans; ++idx) {
       if (v[idx] == nullptr) {
@@ -178,11 +174,6 @@ class cufftPlanManager {
   }
 };
 
-static auto manager() -> cufftPlanManager& {
-  static auto m = cufftPlanManager{};
-  return m;
-}
-
 cufftResult cufftPlan1d(cufftHandle* pPlan, int nx, cufftType type, int batch) {
   if (!pPlan || nx <= 0 || batch < 0) {
     return CUFFT_INVALID_VALUE;
@@ -192,29 +183,37 @@ cufftResult cufftPlan1d(cufftHandle* pPlan, int nx, cufftType type, int batch) {
     return CUFFT_INVALID_VALUE;
   }
 
-  auto p = manager().create_1d(type, nx, batch);
+  if ((nx & (nx - 1)) != 0) {
+    // vDSP only supports power-of-2 sizes
+    return CUFFT_INVALID_SIZE;
+  }
+
+  auto& manager = cufftPlanManager::instance();
+  auto p = manager.create_1d(type, nx, batch);
   *pPlan = p;
   return CUFFT_SUCCESS;
 }
 
 cufftResult cufftDestroy(cufftHandle plan) {
-  if (!plan) {
+  if (plan == CUFFT_PLAN_NULL) {
     return CUFFT_INVALID_PLAN;
   }
 
-  manager().destroy(plan);
+  auto& manager = cufftPlanManager::instance();
+  manager.destroy(plan);
   return CUFFT_SUCCESS;
 }
 
 cufftResult cufftExecC2C(cufftHandle plan, cufftComplex* idata, cufftComplex* odata, int direction) {
-  if (!plan) {
+  if (plan == CUFFT_PLAN_NULL) {
     return CUFFT_INVALID_PLAN;
   }
   if (!idata || !odata) {
     return CUFFT_INVALID_VALUE;
   }
 
-  auto p = manager()[plan];
+  auto& manager = cufftPlanManager::instance();
+  auto p = manager[plan];
   if (!p) {
     return CUFFT_INVALID_PLAN;
   }
@@ -223,14 +222,15 @@ cufftResult cufftExecC2C(cufftHandle plan, cufftComplex* idata, cufftComplex* od
 }
 
 cufftResult cufftExecR2C(cufftHandle plan, cufftReal* ireal, cufftComplex* ocomp) {
-  if (!plan) {
+  if (plan == CUFFT_PLAN_NULL) {
     return CUFFT_INVALID_PLAN;
   }
   if (!ireal || !ocomp) {
     return CUFFT_INVALID_VALUE;
   }
 
-  auto p = manager()[plan];
+  auto& manager = cufftPlanManager::instance();
+  auto p = manager[plan];
   if (!p) {
     return CUFFT_INVALID_PLAN;
   }
@@ -238,14 +238,15 @@ cufftResult cufftExecR2C(cufftHandle plan, cufftReal* ireal, cufftComplex* ocomp
 }
 
 cufftResult cufftExecC2R(cufftHandle plan, cufftComplex* idata, cufftReal* odata) {
-  if (!plan) {
+  if (plan == CUFFT_PLAN_NULL) {
     return CUFFT_INVALID_PLAN;
   }
   if (!idata || !odata) {
     return CUFFT_INVALID_VALUE;
   }
 
-  auto p = manager()[plan];
+  auto& manager = cufftPlanManager::instance();
+  auto p = manager[plan];
   if (!p) {
     return CUFFT_INVALID_PLAN;
   }
@@ -253,7 +254,7 @@ cufftResult cufftExecC2R(cufftHandle plan, cufftComplex* idata, cufftReal* odata
 }
 
 cufftResult cufftSetStream(cufftHandle plan, [[maybe_unused]] CUstream stream) {
-  if (!plan) {
+  if (plan == CUFFT_PLAN_NULL) {
     return CUFFT_INVALID_PLAN;
   }
 

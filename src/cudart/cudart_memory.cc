@@ -15,7 +15,16 @@ cudaError_t cudaMalloc(void** ptr, size_t size) {
   return cudaSuccess;
 }
 
+cudaError_t cudaMallocManaged(void** ptr, size_t size, unsigned int flags) {
+  (void)flags;
+  return ::cudaMalloc(ptr, size);
+}
+
 cudaError_t cudaFree(void* ptr) {
+  if (ptr == nullptr) {
+    return cudaErrorInvalidValue;
+  }
+
   const auto dptr = reinterpret_cast<CUdeviceptr>(ptr);
   if (auto err = ::cuMemFree_v2(dptr)) {
     return static_cast<cudaError_t>(err);
@@ -23,15 +32,30 @@ cudaError_t cudaFree(void* ptr) {
   return cudaSuccess;
 }
 
-cudaError_t cudaMallocManaged(void** ptr, size_t size) {
-  return ::cudaMalloc(ptr, size);
+cudaError_t cudaHostAlloc(void** ptr, size_t size, unsigned int flags) {
+  if (!ptr) {
+    return cudaErrorInvalidValue;
+  }
+
+  if (auto err = ::cuMemAllocHost_v2(ptr, size)) {
+    return static_cast<cudaError_t>(err);
+  }
+
+  return cudaSuccess;
 }
 
-cudaError_t cudaMemPrefetchAsync(const void* /*ptr*/,
-                                 size_t /*count*/,
-                                 cudaMemLocation /*location*/,
-                                 unsigned int /*flags*/,
-                                 cudaStream_t /*stream*/) {
+cudaError_t cudaFreeHost(void* ptr) {
+  if (ptr == nullptr) {
+    return cudaErrorInvalidValue;
+  }
+
+  if (auto err = ::cuMemFree_v2(reinterpret_cast<CUdeviceptr>(ptr))) {
+    return static_cast<cudaError_t>(err);
+  }
+  return cudaSuccess;
+}
+
+cudaError_t cudaMemPrefetchAsync(const void* /*ptr*/, size_t /*count*/, cudaMemLocation /*location*/, unsigned int /*flags*/, cudaStream_t /*stream*/) {
   // in metal's shared memory model, prefetch is a no-op
   return cudaSuccess;
 }

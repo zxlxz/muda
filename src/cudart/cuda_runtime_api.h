@@ -1,6 +1,9 @@
 #pragma once
 
 #include <stddef.h>
+#include <stdint.h>
+
+#define __device_builtin__
 
 #pragma region error handling
 enum cudaError {
@@ -231,8 +234,12 @@ const char* cudaGetErrorName(cudaError_t error);
 #pragma region device
 struct cudaDeviceProp {
   char name[256];
-  size_t totalGlobalMem;
+  int major;
+  int minor;
   int multiProcessorCount;
+  int asyncEngineCount;
+  int l2CacheSize;
+  size_t totalGlobalMem;
 };
 
 cudaError_t cudaGetDeviceCount(int* count);
@@ -247,6 +254,7 @@ struct CUstream_st;
 using cudaStream_t = struct CUstream_st*;
 
 cudaError_t cudaStreamCreate(cudaStream_t* pStream);
+cudaError_t cudaStreamCreateWithFlags(cudaStream_t* pStream, unsigned int flags);
 cudaError_t cudaStreamDestroy(cudaStream_t stream);
 cudaError_t cudaStreamSynchronize(cudaStream_t stream);
 #pragma endregion
@@ -271,12 +279,17 @@ struct cudaMemLocation {
   int id;
 };
 
-cudaError_t cudaMalloc(void** devPtr, size_t size);
-cudaError_t cudaFree(void* devPtr);
-cudaError_t cudaMallocManaged(void** devPtr, size_t size);
+static constexpr auto cudaHostAllocDefault = 0x0U;
+static constexpr auto cudaMemAttachGlobal = 0x1U;
 
-cudaError_t cudaMemPrefetchAsync(
-    const void* devPtr, size_t count, cudaMemLocation location, unsigned int flags, cudaStream_t stream);
+cudaError_t cudaMalloc(void** devPtr, size_t size);
+cudaError_t cudaMallocManaged(void** devPtr, size_t size, unsigned int flags);
+cudaError_t cudaFree(void* devPtr);
+
+cudaError_t cudaHostAlloc(void** ptr, size_t size, unsigned int flags);
+cudaError_t cudaFreeHost(void* ptr);
+
+cudaError_t cudaMemPrefetchAsync(const void* devPtr, size_t count, cudaMemLocation location, unsigned int flags, cudaStream_t stream);
 
 cudaError_t cudaMemset(void* devPtr, int value, size_t count);
 cudaError_t cudaMemsetAsync(void* devPtr, int value, size_t count, cudaStream_t stream);
@@ -286,7 +299,8 @@ cudaError_t cudaMemcpyAsync(void* dst, const void* src, size_t count, cudaMemcpy
 #pragma endregion
 
 #pragma region array management
-using cudaArray_t = struct CUarray_st*;
+struct cudaArray;
+using cudaArray_t = struct cudaArray*;
 
 struct cudaExtent {
   size_t width;
@@ -331,14 +345,11 @@ enum cudaArrayFlags {
   cudaArrayTextureGather = 8,
 };
 
-cudaError_t cudaMalloc3DArray(cudaArray_t* array,
-                              const cudaChannelFormatDesc* desc,
-                              cudaExtent extent,
-                              cudaArrayFlags flags);
+cudaError_t cudaMalloc3DArray(cudaArray_t* array, const cudaChannelFormatDesc* desc, cudaExtent extent, uint32_t flags);
 
 cudaError_t cudaFreeArray(cudaArray_t array);
 
-cudaError_t cudaArrayGetInfo(cudaChannelFormatDesc* desc, cudaExtent* extent, int* flags, cudaArray_t array);
+cudaError_t cudaArrayGetInfo(cudaChannelFormatDesc* desc, cudaExtent* extent, uint32_t* flags, cudaArray_t array);
 
 cudaError_t cudaMemcpy3D(const cudaMemcpy3DParms* p);
 
@@ -398,4 +409,34 @@ cudaError_t cudaCreateTextureObject(cudaTextureObject_t* pTexObject,
                                     const cudaResourceViewDesc* pResViewDesc);
 
 cudaError_t cudaDestroyTextureObject(cudaTextureObject_t texObject);
+#pragma endregion
+
+#pragma region module library
+using cudaLib_t = struct CUlib_st*;
+using cudaKern_t = struct CUkern_st*;
+
+struct dim3 {
+  unsigned int x;
+  unsigned int y;
+  unsigned int z;
+};
+
+enum cudaJitOption {};
+
+enum cudaLibraryOption {
+  cudaLibraryOptionsNone = 0x0,
+};
+
+cudaError_t cudaLibraryLoadFromFile(cudaLib_t* pLib,
+                                    const char* path,
+                                    cudaJitOption** jitOptions,
+                                    void** jitOptionValues,
+                                    unsigned int numJitOptions,
+                                    cudaLibraryOption* libOptions,
+                                    void** libOptionValues,
+                                    unsigned int numLibraryOptions);
+cudaError_t cudaLibraryUnload(cudaLib_t lib);
+
+cudaError_t cudaLibraryGetKernel(cudaKern_t* pFunc, cudaLib_t lib, const char* kernelName);
+cudaError_t cudaLaunchKernel(cudaKern_t f, dim3 gridDim, dim3 blockDim, void** args, size_t sharedMem, cudaStream_t stream);
 #pragma endregion

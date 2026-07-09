@@ -46,3 +46,7 @@ CUresult cuDeviceTotalMem_v2(size_t* bytes, CUdevice dev) {
 
   return CUDA_SUCCESS;
 }
+
+CUresult cuDeviceGetAttribute(int* pi, CUdevice_attribute attrib, CUdevice dev) {
+  return CUDA_ERROR_NOT_SUPPORTED;
+}

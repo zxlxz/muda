@@ -2,7 +2,22 @@
 #include "cuda_runtime_api.h"
 
 cudaError_t cudaStreamCreate(cudaStream_t* pStream) {
+  if (pStream == nullptr) {
+    return cudaErrorInvalidValue;
+  }
+
   if (auto err = ::cuStreamCreate(pStream, 0)) {
+    return static_cast<cudaError_t>(err);
+  }
+  return cudaSuccess;
+}
+
+cudaError_t cudaStreamCreateWithFlags(cudaStream_t* pStream, unsigned int flags) {
+  if (pStream == nullptr) {
+    return cudaErrorInvalidValue;
+  }
+
+  if (auto err = ::cuStreamCreate(pStream, flags)) {
     return static_cast<cudaError_t>(err);
   }
   return cudaSuccess;

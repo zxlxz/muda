@@ -65,22 +65,26 @@ cudaError_t cudaMalloc3DArray(cudaArray_t* array,
       .Flags = static_cast<unsigned>(flags),
   };
 
-  if (auto err = ::cuArray3DCreate_v2(array, &arr_desc)) {
+  auto cu_arr = CUarray{};
+  if (auto err = ::cuArray3DCreate_v2(&cu_arr, &arr_desc)) {
     return static_cast<cudaError_t>(err);
   }
+  *array = (cudaArray*)cu_arr;
   return cudaSuccess;
 }
 
 cudaError_t cudaFreeArray(cudaArray_t array) {
-  if (auto err = ::cuArrayDestroy(array)) {
+  auto cu_arr = (CUarray)array;
+  if (auto err = ::cuArrayDestroy(cu_arr)) {
     return static_cast<cudaError_t>(err);
   }
   return cudaSuccess;
 }
 
 cudaError_t cudaArrayGetInfo(cudaChannelFormatDesc* pDesc, cudaExtent* pExtent, int* pFlags, cudaArray_t array) {
+  auto cu_arr = (CUarray)array;
   auto t = CUDA_ARRAY3D_DESCRIPTOR_st{};
-  if (auto err = ::cuArray3DGetDescriptor_v2(&t, array)) {
+  if (auto err = ::cuArray3DGetDescriptor_v2(&t, cu_arr)) {
     return static_cast<cudaError_t>(err);
   }
 
@@ -118,7 +122,7 @@ cudaError_t cudaMemcpy3DAsync(const cudaMemcpy3DParms* p, cudaStream_t stream) {
 
   // dst
   t.dstMemoryType = CU_MEMORYTYPE_ARRAY;
-  t.dstArray = p->dstArray;
+  t.dstArray = (CUarray_st*)(p->dstArray);
 
   // size
   t.WidthInBytes = p->extent.width;

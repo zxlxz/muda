@@ -11,7 +11,7 @@ cudaError_t cudaCreateTextureObject(cudaTextureObject_t* pTexObj,
 
   auto resDesc = CUDA_RESOURCE_DESC_st{};
   resDesc.resType = static_cast<CUresourcetype>(pResDesc->resType);
-  resDesc.res.array.hArray = pResDesc->res.array.array;
+  resDesc.res.array.hArray = (CUarray_st*)(pResDesc->res.array.array);
 
   auto texDesc = CUDA_TEXTURE_DESC_st{};
   texDesc.addressMode[0] = static_cast<CUaddress_mode>(pTexDesc->addressMode[0]);

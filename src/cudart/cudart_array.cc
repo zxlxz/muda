@@ -48,10 +48,7 @@ static auto toChannelFormat(CUarray_format fmt) -> cudaChannelFormatDesc {
   }
 }
 
-cudaError_t cudaMalloc3DArray(cudaArray_t* array,
-                              const cudaChannelFormatDesc* desc,
-                              cudaExtent extent,
-                              cudaArrayFlags flags) {
+cudaError_t cudaMalloc3DArray(cudaArray_t* array, const cudaChannelFormatDesc* desc, cudaExtent extent, unsigned flags) {
   if (!array) {
     return cudaErrorInvalidValue;
   }
@@ -62,7 +59,7 @@ cudaError_t cudaMalloc3DArray(cudaArray_t* array,
       .Depth = extent.depth,
       .Format = toArrayFormat(*desc),
       .NumChannels = 1,  // Metal textures are single-channel in this implementation
-      .Flags = static_cast<unsigned>(flags),
+      .Flags = flags,
   };
 
   auto cu_arr = CUarray{};
@@ -81,7 +78,7 @@ cudaError_t cudaFreeArray(cudaArray_t array) {
   return cudaSuccess;
 }
 
-cudaError_t cudaArrayGetInfo(cudaChannelFormatDesc* pDesc, cudaExtent* pExtent, int* pFlags, cudaArray_t array) {
+cudaError_t cudaArrayGetInfo(cudaChannelFormatDesc* pDesc, cudaExtent* pExtent, unsigned* pFlags, cudaArray_t array) {
   auto cu_arr = (CUarray)array;
   auto t = CUDA_ARRAY3D_DESCRIPTOR_st{};
   if (auto err = ::cuArray3DGetDescriptor_v2(&t, cu_arr)) {

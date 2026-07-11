@@ -49,7 +49,7 @@ cudaError_t cudaFreeHost(void* ptr) {
     return cudaErrorInvalidValue;
   }
 
-  if (auto err = ::cuMemFree_v2(reinterpret_cast<CUdeviceptr>(ptr))) {
+  if (auto err = ::cuMemFreeHost(ptr)) {
     return static_cast<cudaError_t>(err);
   }
   return cudaSuccess;
@@ -83,5 +83,18 @@ cudaError_t cudaMemcpyAsync(void* dst, const void* src, size_t count, cudaMemcpy
   if (auto err = ::cuMemcpyAsync(d_dst, d_src, count, stream)) {
     return static_cast<cudaError_t>(err);
   }
+  return cudaSuccess;
+}
+
+cudaError_t cudaPointerGetAttributes(cudaPointerAttributes* attributes, const void* ptr) {
+  if (!attributes || !ptr) {
+    return cudaErrorInvalidValue;
+  }
+
+  (void)ptr;
+
+  attributes->device = 0;                        // default device
+  attributes->type = cudaMemLocationTypeDevice;  // default to device memory
+
   return cudaSuccess;
 }

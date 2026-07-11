@@ -279,6 +279,11 @@ struct cudaMemLocation {
   int id;
 };
 
+struct cudaPointerAttributes {
+  cudaMemLocationType type;
+  int device;
+};
+
 static constexpr auto cudaHostAllocDefault = 0x0U;
 static constexpr auto cudaMemAttachGlobal = 0x1U;
 
@@ -296,6 +301,8 @@ cudaError_t cudaMemsetAsync(void* devPtr, int value, size_t count, cudaStream_t 
 
 cudaError_t cudaMemcpy(void* dst, const void* src, size_t count, cudaMemcpyKind kind);
 cudaError_t cudaMemcpyAsync(void* dst, const void* src, size_t count, cudaMemcpyKind kind, cudaStream_t stream);
+
+cudaError_t cudaPointerGetAttributes(cudaPointerAttributes* attributes, const void* ptr);
 #pragma endregion
 
 #pragma region array management
@@ -345,11 +352,11 @@ enum cudaArrayFlags {
   cudaArrayTextureGather = 8,
 };
 
-cudaError_t cudaMalloc3DArray(cudaArray_t* array, const cudaChannelFormatDesc* desc, cudaExtent extent, uint32_t flags);
+cudaError_t cudaMalloc3DArray(cudaArray_t* array, const cudaChannelFormatDesc* desc, cudaExtent extent, unsigned flags);
 
 cudaError_t cudaFreeArray(cudaArray_t array);
 
-cudaError_t cudaArrayGetInfo(cudaChannelFormatDesc* desc, cudaExtent* extent, uint32_t* flags, cudaArray_t array);
+cudaError_t cudaArrayGetInfo(cudaChannelFormatDesc* desc, cudaExtent* extent, unsigned* flags, cudaArray_t array);
 
 cudaError_t cudaMemcpy3D(const cudaMemcpy3DParms* p);
 

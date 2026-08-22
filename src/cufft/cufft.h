@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cuComplex {
   float x;
   float y;
@@ -42,6 +46,7 @@ static constexpr auto CUFFT_INVERSE = 1;
 static constexpr auto CUFFT_PLAN_NULL = -1;
 
 // NOTE: only 1d single is supported now
+
 cufftResult cufftPlan1d(cufftHandle* plan, int nx, cufftType type, int batch);
 cufftResult cufftDestroy(cufftHandle plan);
 
@@ -51,3 +56,7 @@ cufftResult cufftExecC2R(cufftHandle plan, cufftComplex* idata, cufftReal* odata
 
 using CUstream = struct CUstream_st*;
 cufftResult cufftSetStream(cufftHandle plan, CUstream stream);
+
+#ifdef __cplusplus
+}
+#endif

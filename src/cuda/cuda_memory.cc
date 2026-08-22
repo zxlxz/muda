@@ -80,7 +80,7 @@ CUresult cuMemAllocManaged(CUdeviceptr* dptr, size_t bytesize, unsigned int flag
   return cuMemAlloc_v2(dptr, bytesize);
 }
 
-CUresult cuMemAllocHost_v2(void** hptr, size_t bytesize) {
+CUresult cuMemHostAlloc(void** hptr, size_t bytesize, [[maybe_unused]] unsigned int flags) {
   if (!hptr || bytesize == 0) {
     return CUDA_ERROR_INVALID_VALUE;
   }

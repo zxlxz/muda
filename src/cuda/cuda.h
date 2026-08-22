@@ -176,7 +176,19 @@ CUresult cuGetErrorString(CUresult error, const char** pStr);
 using CUdevice = int;
 
 enum CUdevice_attribute {
-  CU_DEVICE_ATTRIBUTE_PCI_BUS_ID = 33,
+  CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK = 1,
+  CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_X = 2,
+  CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_Y = 3,
+  CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_Z = 4,
+  CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_X = 5,
+  CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_Y = 6,
+  CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_Z = 7,
+  CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK = 8,
+  CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT = 16,
+  CU_DEVICE_ATTRIBUTE_ASYNC_ENGINE_COUNT = 40,
+  CU_DEVICE_ATTRIBUTE_L2_CACHE_SIZE = 38,
+  CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR = 75,
+  CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR = 76,
 };
 
 CUresult cuDeviceGet(CUdevice* device, int ordinal);
@@ -254,10 +266,20 @@ CUresult cuMemAlloc_v2(CUdeviceptr* dptr, size_t bytesize);
 CUresult cuMemFree_v2(CUdeviceptr dptr);
 
 CUresult cuMemAllocManaged(CUdeviceptr* dptr, size_t bytesize, unsigned int flags);
-CUresult cuMemPrefetchAsync_v2(CUdeviceptr devPtr, size_t count, CUmemLocation location, unsigned int flags, CUstream hStream);
+CUresult cuMemPrefetchAsync_v2(CUdeviceptr devPtr,
+                               size_t count,
+                               CUmemLocation location,
+                               unsigned int flags,
+                               CUstream hStream);
 
-CUresult cuMemAllocHost_v2(void** pp, size_t bytesize);
+enum CUmemhostalloc_flags {
+  CU_MEMHOSTALLOC_PORTABLE = 0x01,
+  CU_MEMHOSTALLOC_DEVICEMAP = 0x02,
+  CU_MEMHOSTALLOC_WRITECOMBINED = 0x04,
+};
+
 CUresult cuMemFreeHost(void* p);
+CUresult cuMemHostAlloc(void** pp, size_t bytesize, unsigned int flags);
 
 CUresult cuMemcpy(CUdeviceptr dst, const CUdeviceptr src, size_t bytesize);
 CUresult cuMemcpyAsync(CUdeviceptr dst, const CUdeviceptr src, size_t bytesize, CUstream hStream);
@@ -275,7 +297,8 @@ CUresult cuMemsetD32Async(CUdeviceptr dst, unsigned int ui, size_t N, CUstream h
 
 #pragma region array
 using CUarray = struct CUarray_st*;
-struct CUDA_MEMCPY3D_st {
+
+struct CUDA_MEMCPY3D {
   size_t srcXInBytes, srcY, srcZ;
   size_t srcLOD;
   CUmemorytype srcMemoryType;
@@ -298,6 +321,7 @@ struct CUDA_MEMCPY3D_st {
   size_t Height;
   size_t Depth;
 };
+using CUDA_MEMCPY3D_st = CUDA_MEMCPY3D;
 
 enum CUarray_format {
   CU_AD_FORMAT_UNSIGNED_INT8 = 0x01,
@@ -312,7 +336,7 @@ enum CUarray_format {
   CU_AD_FORMAT_MAX = 0xFFFFU,
 };
 
-enum CUarray3d_flags : unsigned int {
+enum CUarray3d_flags {
   CUDA_ARRAY3D_DEFAULT = 0x00,
   CUDA_ARRAY3D_LAYERED = 0x01,
   CUDA_ARRAY3D_CUBEMAP = 0x02,
@@ -320,6 +344,7 @@ enum CUarray3d_flags : unsigned int {
   CUDA_ARRAY3D_TEXTURE_GATHER = 0x08,
 };
 
+typedef struct CUDA_ARRAY3D_DESCRIPTOR_st CUDA_ARRAY3D_DESCRIPTOR;
 struct CUDA_ARRAY3D_DESCRIPTOR_st {
   size_t Width;
   size_t Height;
@@ -329,13 +354,13 @@ struct CUDA_ARRAY3D_DESCRIPTOR_st {
   unsigned int Flags;
 };
 
-CUresult cuArray3DCreate_v2(CUarray* pHandle, const CUDA_ARRAY3D_DESCRIPTOR_st* pAllocateArray);
+CUresult cuArray3DCreate_v2(CUarray* pHandle, const CUDA_ARRAY3D_DESCRIPTOR* pAllocateArray);
 CUresult cuArrayDestroy(CUarray hArray);
 
-CUresult cuArray3DGetDescriptor_v2(CUDA_ARRAY3D_DESCRIPTOR_st* pArrayDescriptor, CUarray hArray);
+CUresult cuArray3DGetDescriptor_v2(CUDA_ARRAY3D_DESCRIPTOR* pArrayDescriptor, CUarray hArray);
 
-CUresult cuMemcpy3D_v2(struct CUDA_MEMCPY3D_st* pCopy);
-CUresult cuMemcpy3DAsync_v2(struct CUDA_MEMCPY3D_st* pCopy, CUstream hStream);
+CUresult cuMemcpy3D_v2(CUDA_MEMCPY3D* pCopy);
+CUresult cuMemcpy3DAsync_v2(CUDA_MEMCPY3D* pCopy, CUstream hStream);
 #pragma endregion
 
 #pragma region texture
@@ -363,6 +388,7 @@ enum CUtrsf_flags {
   CU_TRSF_NORMALIZED_COORDINATES = 0x1,
 };
 
+typedef struct CUDA_TEXTURE_DESC_st CUDA_TEXTURE_DESC;
 struct CUDA_TEXTURE_DESC_st {
   CUaddress_mode addressMode[3];
   CUfilter_mode filterMode;
@@ -373,6 +399,7 @@ struct CUDA_TEXTURE_DESC_st {
   float maxMipmapLevelClamp;
 };
 
+typedef struct CUDA_RESOURCE_DESC_st CUDA_RESOURCE_DESC;
 struct CUDA_RESOURCE_DESC_st {
   CUresourcetype resType;
   union {
@@ -384,7 +411,12 @@ struct CUDA_RESOURCE_DESC_st {
 
 struct CUDA_RESOURCE_VIEW_DESC_st;
 
-CUresult cuTexObjectCreate(CUtexObject* pTexObject, const CUDA_RESOURCE_DESC_st* pResDesc, const CUDA_TEXTURE_DESC_st* pTexDesc, const CUDA_RESOURCE_VIEW_DESC_st* pResViewDesc);
+typedef struct CUDA_RESOURCE_VIEW_DESC_st CUDA_RESOURCE_VIEW_DESC;
+
+CUresult cuTexObjectCreate(CUtexObject* pTexObject,
+                           const CUDA_RESOURCE_DESC* pResDesc,
+                           const CUDA_TEXTURE_DESC* pTexDesc,
+                           const CUDA_RESOURCE_VIEW_DESC* pResViewDesc);
 CUresult cuTexObjectDestroy(CUtexObject texObject);
 #pragma endregion
 
@@ -395,6 +427,29 @@ using CUfunction = struct CUfunc_st*;
 CUresult cuModuleLoad(CUmodule* module, const char* path);
 CUresult cuModuleUnload(CUmodule hmod);
 CUresult cuModuleGetFunction(CUfunction* hfunc, CUmodule hmod, const char* name);
+
+enum CUjit_option {
+  CU_JIT_OPTION_END = 0,
+};
+
+enum CUlibraryOption {
+  CU_LIBRARY_OPTION_END = 0,
+};
+
+using CUlibrary = struct CUlib_st*;
+using CUkernel = struct CUkern_st*;
+
+CUresult cuLibraryLoadFromFile(CUlibrary* library,
+                               const char* fileName,
+                               CUjit_option* jitOptions,
+                               void** jitOptionsValues,
+                               unsigned int numJitOptions,
+                               CUlibraryOption* libraryOptions,
+                               void** libraryOptionValues,
+                               unsigned int numLibraryOptions);
+CUresult cuLibraryUnload(CUlibrary library);
+CUresult cuLibraryGetKernel(CUkernel* pKernel, CUlibrary library, const char* name);
+CUresult cuKernelGetFunction(CUfunction* pFunction, CUkernel kernel);
 #pragma endregion
 
 #pragma region function
@@ -417,6 +472,7 @@ struct CUParam_st {
   CUParam_st(T* ptr, Type t = Buffer) : _type{t}, _size{sizeof(T)}, _data{ptr} {}
 };
 
+struct CUlaunchAttribute;
 struct CUlaunchConfig {
   unsigned gridDimX;
   unsigned gridDimY;
@@ -426,6 +482,8 @@ struct CUlaunchConfig {
   unsigned blockDimZ;
   unsigned sharedMemBytes;
   CUstream hStream;
+  CUlaunchAttribute* attrs;
+  unsigned numAttrs;
 };
 
 CUresult cuLaunchKernelEx(const CUlaunchConfig* conf, CUfunction f, void* params[], void** extra);

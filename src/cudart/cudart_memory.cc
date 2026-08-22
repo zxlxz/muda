@@ -37,7 +37,7 @@ cudaError_t cudaHostAlloc(void** ptr, size_t size, unsigned int flags) {
     return cudaErrorInvalidValue;
   }
 
-  if (auto err = ::cuMemAllocHost_v2(ptr, size)) {
+  if (auto err = ::cuMemHostAlloc(ptr, size, flags)) {
     return static_cast<cudaError_t>(err);
   }
 

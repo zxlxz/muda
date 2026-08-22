@@ -174,7 +174,7 @@ class cufftPlanManager {
   }
 };
 
-cufftResult cufftPlan1d(cufftHandle* pPlan, int nx, cufftType type, int batch) {
+extern "C" cufftResult cufftPlan1d(cufftHandle* pPlan, int nx, cufftType type, int batch) {
   if (!pPlan || nx <= 0 || batch < 0) {
     return CUFFT_INVALID_VALUE;
   }
@@ -194,7 +194,7 @@ cufftResult cufftPlan1d(cufftHandle* pPlan, int nx, cufftType type, int batch) {
   return CUFFT_SUCCESS;
 }
 
-cufftResult cufftDestroy(cufftHandle plan) {
+extern "C" cufftResult cufftDestroy(cufftHandle plan) {
   if (plan == CUFFT_PLAN_NULL) {
     return CUFFT_INVALID_PLAN;
   }
@@ -204,7 +204,7 @@ cufftResult cufftDestroy(cufftHandle plan) {
   return CUFFT_SUCCESS;
 }
 
-cufftResult cufftExecC2C(cufftHandle plan, cufftComplex* idata, cufftComplex* odata, int direction) {
+extern "C" cufftResult cufftExecC2C(cufftHandle plan, cufftComplex* idata, cufftComplex* odata, int direction) {
   if (plan == CUFFT_PLAN_NULL) {
     return CUFFT_INVALID_PLAN;
   }
@@ -221,7 +221,7 @@ cufftResult cufftExecC2C(cufftHandle plan, cufftComplex* idata, cufftComplex* od
   return p->exec_c2c(idata, odata, direction);
 }
 
-cufftResult cufftExecR2C(cufftHandle plan, cufftReal* ireal, cufftComplex* ocomp) {
+extern "C" cufftResult cufftExecR2C(cufftHandle plan, cufftReal* ireal, cufftComplex* ocomp) {
   if (plan == CUFFT_PLAN_NULL) {
     return CUFFT_INVALID_PLAN;
   }
@@ -237,7 +237,7 @@ cufftResult cufftExecR2C(cufftHandle plan, cufftReal* ireal, cufftComplex* ocomp
   return p->exec_r2c(ireal, ocomp);
 }
 
-cufftResult cufftExecC2R(cufftHandle plan, cufftComplex* idata, cufftReal* odata) {
+extern "C" cufftResult cufftExecC2R(cufftHandle plan, cufftComplex* idata, cufftReal* odata) {
   if (plan == CUFFT_PLAN_NULL) {
     return CUFFT_INVALID_PLAN;
   }
@@ -253,7 +253,7 @@ cufftResult cufftExecC2R(cufftHandle plan, cufftComplex* idata, cufftReal* odata
   return p->exec_c2r(idata, odata);
 }
 
-cufftResult cufftSetStream(cufftHandle plan, [[maybe_unused]] CUstream stream) {
+extern "C" cufftResult cufftSetStream(cufftHandle plan, [[maybe_unused]] CUstream stream) {
   if (plan == CUFFT_PLAN_NULL) {
     return CUFFT_INVALID_PLAN;
   }

@@ -111,11 +111,11 @@ CUresult cuArray3DGetDescriptor_v2(CUDA_ARRAY3D_DESCRIPTOR_st* pArrayDescriptor,
   return CUDA_SUCCESS;
 }
 
-CUresult cuMemcpy3D_v2(CUDA_MEMCPY3D_st* pCopy) {
+CUresult cuMemcpy3D_v2(CUDA_MEMCPY3D* pCopy) {
   return cuMemcpy3DAsync_v2(pCopy, nullptr);
 }
 
-CUresult cuMemcpy3DAsync_v2(struct CUDA_MEMCPY3D_st* pCopy, CUstream hStream) {
+CUresult cuMemcpy3DAsync_v2(CUDA_MEMCPY3D* pCopy, CUstream hStream) {
   (void)hStream;
 
   if (!pCopy) {

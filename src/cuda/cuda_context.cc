@@ -55,7 +55,6 @@ CUresult cuCtxGetDevice(CUdevice* device) {
     return CUDA_ERROR_INVALID_VALUE;
   }
 
-  auto& dev = MetalCtx::global();
   *device = 0;
   return CUDA_SUCCESS;
 }

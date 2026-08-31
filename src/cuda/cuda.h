@@ -284,6 +284,15 @@ CUresult cuMemHostAlloc(void** pp, size_t bytesize, unsigned int flags);
 CUresult cuMemcpy(CUdeviceptr dst, const CUdeviceptr src, size_t bytesize);
 CUresult cuMemcpyAsync(CUdeviceptr dst, const CUdeviceptr src, size_t bytesize, CUstream hStream);
 
+CUresult cuMemcpyHtoD(CUdeviceptr dst, const void* src, size_t bytesize);
+CUresult cuMemcpyHtoDAsync(CUdeviceptr dst, const void* src, size_t bytesize, CUstream hStream);
+
+CUresult cuMemcpyDtoH(void* dst, const CUdeviceptr src, size_t bytesize);
+CUresult cuMemcpyDtoHAsync(void* dst, const CUdeviceptr src, size_t bytesize, CUstream hStream);
+
+CUresult cuMemcpyDtoD(CUdeviceptr dst, const CUdeviceptr src, size_t bytesize);
+CUresult cuMemcpyDtoDAsync(CUdeviceptr dst, const CUdeviceptr src, size_t bytesize, CUstream hStream);
+
 CUresult cuMemsetD8_v2(CUdeviceptr dst, unsigned char uc, size_t N);
 CUresult cuMemsetD8Async(CUdeviceptr dst, unsigned char uc, size_t N, CUstream hStream);
 

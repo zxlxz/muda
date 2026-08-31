@@ -28,6 +28,34 @@ int main(int argc, const char* argv[]) {
       return -1;
     }
   }
-  // 4. free memory
+
+  // 4. H2D memcpy
+  auto* h = static_cast<uint32_t*>(malloc(N * sizeof(uint32_t)));
+  for (auto i = 0U; i < N; ++i) {
+    h[i] = i;
+  }
+  SAFE_CALL(cudaMemcpy(a, h, N * sizeof(uint32_t), cudaMemcpyHostToDevice));
+
+  // 5. D2D memcpy
+  uint32_t* b = nullptr;
+  SAFE_CALL(cudaMalloc((void**)&b, N * sizeof(uint32_t)));
+  SAFE_CALL(cudaMemcpy(b, a, N * sizeof(uint32_t), cudaMemcpyDeviceToDevice));
+
+  // 6. D2H memcpy
+  auto* h2 = static_cast<uint32_t*>(malloc(N * sizeof(uint32_t)));
+  SAFE_CALL(cudaMemcpy(h2, b, N * sizeof(uint32_t), cudaMemcpyDeviceToHost));
+
+  // 7. test memory
+  for (auto i = 0U; i < N; ++i) {
+    if (h2[i] != i) {
+      std::println("memcpy failed at index {}, value={}", i, h2[i]);
+      return -1;
+    }
+  }
+
+  // 8. free memory
   SAFE_CALL(cudaFree(a));
+  SAFE_CALL(cudaFree(b));
+  free(h);
+  free(h2);
 }

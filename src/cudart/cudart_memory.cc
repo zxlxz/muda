@@ -80,7 +80,29 @@ cudaError_t cudaMemcpy(void* dst, const void* src, size_t count, cudaMemcpyKind 
 cudaError_t cudaMemcpyAsync(void* dst, const void* src, size_t count, cudaMemcpyKind kind, cudaStream_t stream) {
   const auto d_dst = reinterpret_cast<CUdeviceptr>(dst);
   const auto d_src = reinterpret_cast<CUdeviceptr>(src);
-  if (auto err = ::cuMemcpyAsync(d_dst, d_src, count, stream)) {
+
+  CUresult err;
+  switch (kind) {
+    case cudaMemcpyHostToHost:
+      err = ::cuMemcpyAsync(d_dst, d_src, count, stream);
+      break;
+    case cudaMemcpyHostToDevice:
+      err = ::cuMemcpyHtoDAsync(d_dst, src, count, stream);
+      break;
+    case cudaMemcpyDeviceToHost:
+      err = ::cuMemcpyDtoHAsync(dst, d_src, count, stream);
+      break;
+    case cudaMemcpyDeviceToDevice:
+      err = ::cuMemcpyDtoDAsync(d_dst, d_src, count, stream);
+      break;
+    case cudaMemcpyDefault:
+      // direction is inferred from the pointers
+      err = ::cuMemcpyAsync(d_dst, d_src, count, stream);
+      break;
+    default: return cudaErrorInvalidMemcpyDirection;
+  }
+
+  if (err) {
     return static_cast<cudaError_t>(err);
   }
   return cudaSuccess;

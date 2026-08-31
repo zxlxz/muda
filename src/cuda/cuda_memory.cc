@@ -124,6 +124,75 @@ CUresult cuMemcpyAsync(CUdeviceptr dst, CUdeviceptr src, size_t bytesize, CUstre
   return CUDA_SUCCESS;
 }
 
+CUresult cuMemcpyHtoD(CUdeviceptr dst, const void* src, size_t bytesize) {
+  return cuMemcpyHtoDAsync(dst, src, bytesize, nullptr);
+}
+
+CUresult cuMemcpyHtoDAsync(CUdeviceptr dst, const void* src, size_t bytesize, CUstream hStream) {
+  (void)hStream;
+
+  if (!dst || !src || bytesize == 0) {
+    return CUDA_ERROR_INVALID_VALUE;
+  }
+
+  // dst must be device memory (a registered metal buffer)
+  static auto& ctx = MetalCtx::global();
+  if (!ctx.findBuffer(reinterpret_cast<const void*>(dst))) {
+    return CUDA_ERROR_INVALID_VALUE;
+  }
+
+  // in metal's unified memory model, host and device share the same address space,
+  // so we can directly memcpy and stream is ignored
+  __builtin_memcpy(reinterpret_cast<void*>(dst), src, bytesize);
+  return CUDA_SUCCESS;
+}
+
+CUresult cuMemcpyDtoH(void* dst, const CUdeviceptr src, size_t bytesize) {
+  return cuMemcpyDtoHAsync(dst, src, bytesize, nullptr);
+}
+
+CUresult cuMemcpyDtoHAsync(void* dst, const CUdeviceptr src, size_t bytesize, CUstream hStream) {
+  (void)hStream;
+
+  if (!dst || !src || bytesize == 0) {
+    return CUDA_ERROR_INVALID_VALUE;
+  }
+
+  // src must be device memory (a registered metal buffer)
+  static auto& ctx = MetalCtx::global();
+  if (!ctx.findBuffer(reinterpret_cast<const void*>(src))) {
+    return CUDA_ERROR_INVALID_VALUE;
+  }
+
+  // in metal's unified memory model, host and device share the same address space,
+  // so we can directly memcpy and stream is ignored
+  __builtin_memcpy(dst, reinterpret_cast<const void*>(src), bytesize);
+  return CUDA_SUCCESS;
+}
+
+CUresult cuMemcpyDtoD(CUdeviceptr dst, const CUdeviceptr src, size_t bytesize) {
+  return cuMemcpyDtoDAsync(dst, src, bytesize, nullptr);
+}
+
+CUresult cuMemcpyDtoDAsync(CUdeviceptr dst, const CUdeviceptr src, size_t bytesize, CUstream hStream) {
+  (void)hStream;
+
+  if (!dst || !src || bytesize == 0) {
+    return CUDA_ERROR_INVALID_VALUE;
+  }
+
+  // both dst and src must be device memory (registered metal buffers)
+  static auto& ctx = MetalCtx::global();
+  if (!ctx.findBuffer(reinterpret_cast<const void*>(dst)) || !ctx.findBuffer(reinterpret_cast<const void*>(src))) {
+    return CUDA_ERROR_INVALID_VALUE;
+  }
+
+  // in metal's unified memory model, host and device share the same address space,
+  // so we can directly memcpy and stream is ignored
+  __builtin_memcpy(reinterpret_cast<void*>(dst), reinterpret_cast<const void*>(src), bytesize);
+  return CUDA_SUCCESS;
+}
+
 CUresult cuMemPrefetchAsync_v2(CUdeviceptr devPtr, size_t count, CUmemLocation location, unsigned int flags, CUstream hStream) {
   (void)devPtr;
   (void)count;
